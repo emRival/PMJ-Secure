@@ -25,7 +25,8 @@ export const actions = {
                 maxAge: 60 * 60 * 24 * 7
             });
         } catch (err) {
-            return fail(400, { error: err.message });
+            console.error('Registration Error:', err);
+            return fail(500, { error: err.message || 'Internal Server Error' });
         }
 
         throw redirect(303, '/');
