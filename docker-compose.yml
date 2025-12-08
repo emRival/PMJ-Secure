@@ -6,7 +6,7 @@ services:
     container_name: pmj-secure-app
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "3009:3000"
     environment:
       - ORIGIN=http://172.16.66.22:3009
       - DB_PATH=/app/data/passwords.db
