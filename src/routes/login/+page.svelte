@@ -95,9 +95,16 @@
             </form>
 
             <div class="footer">
-                <p>
+                <p style="margin-bottom: 0.5rem;">
                     Don't have an account? <a href="/register"
                         >Sign up for free</a
+                    >
+                </p>
+                <p>
+                    <a
+                        href="/reset-password"
+                        style="font-size: 0.85rem; color: #6b7280;"
+                        >Forgot Password? (Requires 2FA)</a
                     >
                 </p>
             </div>
@@ -110,7 +117,7 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        min-height: 80vh;
+        min-height: 100vh;
         padding: 1rem;
     }
 

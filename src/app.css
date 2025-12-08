@@ -18,16 +18,61 @@
 :root.dark {
   --primary-color: #3b82f6;
   --primary-hover: #60a5fa;
-  --bg-color: #111827;
-  --text-color: #f9fafb;
-  --text-muted: #9ca3af;
-  --card-bg: #1f2937;
-  --border-color: #374151;
+  --bg-color: #0f172a;
+  /* Darker, richer blue-gray */
+  --text-color: #f8fafc;
+  --text-muted: #94a3b8;
+  --card-bg: #1e293b;
+  /* Slightly lighter than bg */
+  --border-color: #334155;
   --danger-color: #f87171;
   --success-color: #34d399;
-  --input-bg: #374151;
-  --input-border: #4b5563;
-  --header-bg: #111827;
+  --input-bg: #0f172a;
+  --input-border: #334155;
+  --header-bg: #0f172a;
+}
+
+/* ... existing code ... */
+
+/* Global Center Container for Auth Pages */
+.center-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 1rem;
+  width: 100%;
+}
+
+:root.dark .excel-table-wrapper {
+  background-color: #1e293b;
+  border-color: #334155;
+}
+
+:root.dark .upload-wrapper {
+  background-color: rgba(30, 41, 59, 0.5);
+  border-color: #334155;
+}
+
+:root.dark .card-row {
+  background-color: #334155;
+  color: #e2e8f0;
+}
+
+:root.dark .success-box,
+:root.dark .status-enabled {
+  background-color: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+:root.dark .status-msg.processing {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: #93c5fd;
+}
+
+:root.dark .status-msg.error {
+  background: rgba(239, 68, 68, 0.1);
+  color: #fca5a5;
 }
 
 * {

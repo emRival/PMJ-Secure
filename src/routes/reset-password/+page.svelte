@@ -1,45 +1,55 @@
 <script>
-    import { fade } from "svelte/transition";
     import { enhance } from "$app/forms";
-    export let form;
+    import { fade } from "svelte/transition";
 
+    export let form;
     let showPassword = false;
 </script>
 
 <div class="container">
     <div class="auth-card">
         <div class="header">
-            <a href="/" class="back-link">← Back to Home</a>
-            <div class="logo">🛡️</div>
-            <h1>Join PMJ Secure</h1>
-            <p class="subtitle">
-                Create your free account to start saving passwords.
-            </p>
+            <a href="/login" class="back-link">← Back to Login</a>
+            <div class="logo">🔐</div>
+            <h1>Reset Password</h1>
+            <p class="subtitle">Use your 2FA code to reset your password.</p>
         </div>
 
-        <form method="POST" action="?/register" use:enhance>
+        <form method="POST" action="?/reset" use:enhance>
             <div class="form-group">
                 <label for="username">Username</label>
                 <input
                     type="text"
                     id="username"
                     name="username"
-                    placeholder="Choose a unique username"
+                    placeholder="Enter your username"
                     required
-                    minlength="5"
                 />
-                <span class="hint">Minimum 5 characters</span>
             </div>
 
             <div class="form-group">
-                <label for="password">Password</label>
+                <label for="token">2FA Code</label>
+                <input
+                    type="text"
+                    id="token"
+                    name="token"
+                    placeholder="000 000"
+                    required
+                    maxlength="6"
+                    style="text-align: center; letter-spacing: 0.2rem;"
+                />
+            </div>
+
+            <div class="form-group">
+                <label for="newPassword">New Password</label>
                 <div class="password-wrapper">
                     <input
                         type={showPassword ? "text" : "password"}
-                        id="password"
-                        name="password"
-                        placeholder="Create a strong password"
+                        id="newPassword"
+                        name="newPassword"
+                        placeholder="Enter new password"
                         required
+                        minlength="6"
                     />
                     <button
                         type="button"
@@ -56,12 +66,8 @@
                 <div class="error" transition:fade>{form.error}</div>
             {/if}
 
-            <button type="submit" class="btn-submit">Create Account</button>
+            <button type="submit" class="btn-submit">Reset Password</button>
         </form>
-
-        <div class="footer">
-            <p>Already have an account? <a href="/login">Log in</a></p>
-        </div>
     </div>
 </div>
 
@@ -171,13 +177,6 @@
         opacity: 1;
     }
 
-    .hint {
-        font-size: 0.8rem;
-        color: #6b7280;
-        margin-top: 0.3rem;
-        display: block;
-    }
-
     .btn-submit {
         width: 100%;
         padding: 0.85rem;
@@ -205,34 +204,21 @@
         text-align: center;
     }
 
-    .footer {
-        text-align: center;
-        margin-top: 1.5rem;
-        font-size: 0.9rem;
-        color: #6b7280;
+    /* Dark Mode Support */
+    :global(.dark) .auth-card {
+        background: #1f2937;
+        border-color: #374151;
+        box-shadow: none;
     }
-
-    a {
-        color: #2563eb;
-        text-decoration: none;
-        font-weight: 600;
+    :global(.dark) h1 {
+        color: #f9fafb;
     }
-
-    a:hover {
-        text-decoration: underline;
+    :global(.dark) label {
+        color: #d1d5db;
     }
-
-    @media (max-width: 480px) {
-        .auth-card {
-            padding: 1.5rem;
-        }
-
-        .logo {
-            font-size: 2.5rem;
-        }
-
-        h1 {
-            font-size: 1.25rem;
-        }
+    :global(.dark) input {
+        background-color: #374151;
+        border-color: #4b5563;
+        color: #f9fafb;
     }
 </style>

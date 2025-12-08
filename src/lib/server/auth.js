@@ -104,5 +104,26 @@ export const Auth = {
         const stmt = db.prepare('SELECT two_factor_enabled FROM users WHERE id = ?');
         const user = stmt.get(userId);
         return user ? user.two_factor_enabled === 1 : false;
+    },
+
+    async resetPasswordWith2FA(username, token, newPassword) {
+        const { authenticator } = await import('otplib');
+        const stmt = db.prepare('SELECT id, two_factor_secret, two_factor_enabled FROM users WHERE username = ?');
+        const user = stmt.get(username);
+
+        if (!user) throw new Error("User not found");
+        if (!user.two_factor_enabled || user.two_factor_enabled !== 1) throw new Error("2FA is not enabled for this account. Cannot reset password via 2FA.");
+        if (!user.two_factor_secret) throw new Error("2FA secret missing");
+
+        const isValid = authenticator.check(token, user.two_factor_secret);
+        if (!isValid) throw new Error("Invalid 2FA code");
+
+        const salt = await bcrypt.genSalt(10);
+        const hash = await bcrypt.hash(newPassword, salt);
+
+        const updateStmt = db.prepare('UPDATE users SET password_hash = ? WHERE id = ?');
+        updateStmt.run(hash, user.id);
+
+        return user.id; // Return user ID to allow auto-login
     }
 };
