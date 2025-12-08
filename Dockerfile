@@ -31,7 +31,7 @@ COPY --from=builder /app/build ./build
 RUN mkdir -p /app/data
 ENV DB_PATH=/app/data/passwords.db
 ENV PORT=3000
-ENV ORIGIN=http://localhost:3000
+# ENV ORIGIN=http://localhost:3000
 
 EXPOSE 3000
 
