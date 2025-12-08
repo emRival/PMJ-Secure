@@ -63,7 +63,7 @@ We take security seriously. Here is how we protect your data:
 
 1.  **Clone the repository**
     ```bash
-    git clone https://github.com/yourusername/random-password-generator.git
+    git clone https://github.com/emRival/PMJ-Secure.git
     cd random-password-generator
     ```
 
@@ -88,19 +88,16 @@ This project is optimized for deployment using Docker and Docker Compose.
 
 1.  **Clone the repository** to your server.
 
-2.  **Configure Environment** (Optional)
-    Open `docker-compose.yml` and update the `ORIGIN` environment variable if you are deploying to a specific domain.
-    ```yaml
-    environment:
-      - ORIGIN=https://your-domain.com
-    ```
+    The application is configured to work with both direct IP access (LXC/HTTP) and Domain access (HTTPS) automatically.
+    
+    If you need to enforce a specific origin, you can uncomment `ORIGIN` in `docker-compose.yml`, but leaving it commented out is recommended for hybrid environments.
 
 3.  **Run the container**
     ```bash
     docker-compose up -d --build
     ```
 
-The application will be available at `http://localhost:3000` (or your server's IP).
+The application will be available at `http://localhost:3009` (or your server's IP:3009).
 
 ### Using Nginx Proxy Manager
 
@@ -109,7 +106,7 @@ If you are using Nginx Proxy Manager (NPM) to expose the app:
 1.  Run the container as shown above.
 2.  In NPM, create a new **Proxy Host**.
 3.  Set **Forward Hostname / IP** to your Docker host IP.
-4.  Set **Forward Port** to `3000`.
+4.  Set **Forward Port** to `3009` (default configured in docker-compose).
 5.  Enable **Websockets Support** (optional but recommended).
 6.  Request a **Let's Encrypt SSL Certificate** and enable "Force SSL".
 7.  **Important**: Update the `ORIGIN` in `docker-compose.yml` to your full HTTPS domain (e.g., `https://passwords.example.com`) and restart the container.
