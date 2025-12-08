@@ -10,6 +10,6 @@ services:
     environment:
       # - ORIGIN=http://172.16.66.22:3009
       - DB_PATH=/app/data/passwords.db
-      - BODY_SIZE_LIMIT=0
+      # - BODY_SIZE_LIMIT=0 # Removed to use default limit, 0 blocked all requests
     volumes:
       - ./data:/app/data
