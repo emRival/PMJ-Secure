@@ -9,19 +9,48 @@ PMJ Secure is a modern, secure, and open-source password generator and manager b
 -   **Strong Password Generation**: Customizable length, character sets (uppercase, lowercase, numbers, symbols).
 -   **Password Strength Meter**: Visual indicator of password strength.
 -   **Secure Vault**: Save passwords with titles and optional usernames.
+-   **Advanced Security**: 
+    -   **Identity Verification**: Sensitive actions (view, edit, copy) require password re-entry.
+    -   **Secure Session**: Verification remains valid for 10 minutes for convenience.
+-   **Encrypted Export**: Export your password vault to a PDF file, fully encrypted with your login password.
+-   **Search & Organize**: Easily find passwords with real-time search and filtering.
 -   **User Authentication**: Secure Login and Registration system.
 -   **Local Database**: Uses SQLite for fast and reliable data storage.
 -   **Privacy Focused**: Passwords are hidden by default with toggle visibility.
 -   **Responsive Design**: Works perfectly on desktop and mobile.
 -   **Docker Ready**: Easy deployment with Docker and Docker Compose.
 
-## 🛠️ Tech Stack
+## 🏗️ Architecture & Technology Stack
 
--   **Frontend**: SvelteKit, CSS (Modern & Responsive)
--   **Backend**: SvelteKit Server Actions (Node.js)
--   **Database**: SQLite (`better-sqlite3`)
--   **Authentication**: Custom session-based auth with `bcryptjs`
--   **Containerization**: Docker
+PMJ Secure is built with performance, security, and simplicity in mind. We chose a modern stack that delivers a lightning-fast user experience while maintaining robust security standards.
+
+### Core Framework
+-   **[SvelteKit](https://kit.svelte.dev/)**: The meta-framework for Svelte. We use SvelteKit for its hybrid rendering capabilities (SSR + CSR), which provides:
+    -   **Zero-compromise performance**: Smaller bundle sizes compared to React/Vue.
+    -   **Server-Side Rendering (SSR)**: For fast initial page loads and SEO.
+    -   **API Routes**: Integrated backend logic without needing a separate server.
+
+### Backend & Database
+-   **Node.js**: The runtime environment for our server-side logic.
+-   **SQLite (`better-sqlite3`)**: A high-performance, serverless SQL database.
+    -   *Why SQLite?* It allows the entire application to be self-contained in a single Docker container, making backups as simple as copying a file (`passwords.db`). No complex database setup required.
+
+### Security & Authentication
+-   **`bcryptjs`**: Industry-standard library for hashing user passwords. We never store plain-text passwords.
+-   **Session Management**: Custom implementation using secure, `HttpOnly`, `SameSite=Strict` cookies to prevent XSS and CSRF attacks.
+-   **Rate Limiting**: Custom middleware to prevent brute-force attacks on registration and login endpoints.
+
+### Frontend & UI
+-   **Vanilla CSS**: No heavy CSS frameworks (like Bootstrap or Tailwind). We use modern CSS variables and Flexbox/Grid for a custom, lightweight, and easily maintainable design system.
+-   **`jspdf` & `jspdf-autotable`**: For generating secure, password-protected PDF backups directly in the browser.
+
+## 🛡️ Security Architecture
+
+We take security seriously. Here is how we protect your data:
+
+1.  **Sudo Mode**: Sensitive actions (viewing, editing, or copying passwords) require you to re-enter your master password. This session stays active for 10 minutes, balancing security with convenience.
+2.  **Encrypted Exports**: When you export your vault to PDF, the file is encrypted with AES-128 encryption using your master password. Even if someone steals the file, they cannot open it.
+3.  **Local-First Design**: Your data lives on your server (or local machine), not in a third-party cloud. You own your data completely.
 
 ## 🚀 Getting Started (Local Development)
 

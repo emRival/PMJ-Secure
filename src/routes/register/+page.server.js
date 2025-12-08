@@ -16,7 +16,7 @@ export const actions = {
         }
 
         try {
-            const userId = Auth.createUser(username, password);
+            const { id: userId } = await Auth.createUser(username, password);
             const sessionId = Auth.createSession(userId);
             cookies.set('session_id', sessionId, {
                 path: '/',
@@ -25,7 +25,7 @@ export const actions = {
                 maxAge: 60 * 60 * 24 * 7
             });
         } catch (err) {
-            return fail(400, { message: err.message });
+            return fail(400, { error: err.message });
         }
 
         throw redirect(303, '/');

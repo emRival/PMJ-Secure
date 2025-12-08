@@ -8,12 +8,12 @@ export const actions = {
         const password = data.get('password');
 
         if (!username || !password) {
-            return fail(400, { missing: true });
+            return fail(400, { error: 'Username and password are required' });
         }
 
         const user = await Auth.verifyUser(username, password);
         if (!user) {
-            return fail(400, { invalid: true });
+            return fail(400, { error: 'Invalid username or password' });
         }
 
         const sessionId = Auth.createSession(user.id);

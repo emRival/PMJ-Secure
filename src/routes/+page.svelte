@@ -1,5 +1,7 @@
 <script>
     import { invalidateAll } from "$app/navigation";
+    import jsPDF from "jspdf";
+    import autoTable from "jspdf-autotable";
     import { fade, slide, scale } from "svelte/transition";
     import { quintOut } from "svelte/easing";
 
@@ -34,6 +36,20 @@
 
     let copySuccess = false;
     let saveSuccess = false;
+
+    // Search State
+    let searchQuery = "";
+
+    $: filteredPasswords = data.passwords
+        ? data.passwords.filter(
+              (p) =>
+                  p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  (p.username &&
+                      p.username
+                          .toLowerCase()
+                          .includes(searchQuery.toLowerCase())),
+          )
+        : [];
 
     function calculateStrength(password) {
         let score = 0;
@@ -172,6 +188,31 @@
         }
     }
 
+    let showDeleteModal = false;
+    let deleteId = null;
+
+    function requestDelete(id) {
+        deleteId = id;
+        showDeleteModal = true;
+    }
+
+    async function confirmDelete() {
+        if (!deleteId) return;
+
+        const response = await fetch("/api/passwords", {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: deleteId }),
+        });
+
+        if (response.ok) {
+            invalidateAll();
+            editingId = null;
+            showDeleteModal = false;
+            deleteId = null;
+        }
+    }
+
     function handleSaveClick() {
         if (!data.user) {
             window.location.href = "/login";
@@ -182,17 +223,76 @@
         }
     }
 
-    function copyToClipboard(text) {
-        navigator.clipboard.writeText(text);
-        copySuccess = true;
-        setTimeout(() => (copySuccess = false), 2000);
+    // Sensitive Action Verification
+    let showVerifyModal = false;
+    let verifyPassword = "";
+    let verifyError = "";
+    let pendingAction = null; // { type: 'edit' | 'show' | 'copy', itemId: string, item: object }
+    let verifiedSessionUntil = 0; // Timestamp when verification expires
+
+    function isSessionVerified() {
+        return Date.now() < verifiedSessionUntil;
+    }
+
+    function requireVerification(action) {
+        if (isSessionVerified()) {
+            performAction(action);
+        } else {
+            pendingAction = action;
+            verifyPassword = "";
+            verifyError = "";
+            showVerifyModal = true;
+        }
+    }
+
+    async function confirmVerify() {
+        if (!verifyPassword) {
+            verifyError = "Password is required";
+            return;
+        }
+
+        try {
+            const res = await fetch("/api/verify-password", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ password: verifyPassword }),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok || !data.valid) {
+                verifyError = "Incorrect password";
+                return;
+            }
+
+            verifiedSessionUntil = Date.now() + 10 * 60 * 1000; // 10 minutes
+            showVerifyModal = false;
+            if (pendingAction) {
+                performAction(pendingAction);
+                pendingAction = null;
+            }
+        } catch (err) {
+            verifyError = "Verification failed. Try again.";
+        }
+    }
+
+    function performAction(action) {
+        if (action.type === "edit") {
+            editingId = action.item.id;
+            editTitle = action.item.title;
+            editUsername = action.item.username || "";
+            editPassword = action.item.password;
+        } else if (action.type === "show") {
+            visiblePasswords[action.itemId] = !visiblePasswords[action.itemId];
+        } else if (action.type === "copy") {
+            navigator.clipboard.writeText(action.text);
+            copySuccess = true;
+            setTimeout(() => (copySuccess = false), 2000);
+        }
     }
 
     function startEditing(item) {
-        editingId = item.id;
-        editTitle = item.title;
-        editUsername = item.username || "";
-        editPassword = item.password;
+        requireVerification({ type: "edit", item });
     }
 
     function cancelEditing() {
@@ -203,10 +303,14 @@
     }
 
     function toggleVisibility(id) {
-        visiblePasswords[id] = !visiblePasswords[id];
+        requireVerification({ type: "show", itemId: id });
     }
 
-    function regenerateSavedPassword() {
+    function copyToClipboard(text) {
+        requireVerification({ type: "copy", text });
+    }
+
+    function regenerateForEdit() {
         const uppercaseChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         const lowercaseChars = "abcdefghijklmnopqrstuvwxyz";
         const numberChars = "0123456789";
@@ -226,6 +330,88 @@
         }
 
         editPassword = password;
+    }
+
+    let showExportModal = false;
+    let exportPassword = "";
+    let exportError = "";
+
+    function startExport() {
+        showExportModal = true;
+        exportPassword = "";
+        exportError = "";
+    }
+
+    async function confirmExport() {
+        if (!exportPassword) {
+            exportError = "Password is required";
+            return;
+        }
+
+        try {
+            const res = await fetch("/api/verify-password", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ password: exportPassword }),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok || !data.valid) {
+                exportError = "Incorrect password";
+                return;
+            }
+
+            await generatePDF(exportPassword);
+            showExportModal = false;
+        } catch (err) {
+            exportError = "Verification failed. Try again.";
+        }
+    }
+
+    async function generatePDF(password) {
+        const response = await fetch("/api/export");
+        const passwords = await response.json();
+
+        const doc = new jsPDF();
+
+        doc.setProperties({
+            title: "My Passwords",
+            author: "PMJ Secure",
+        });
+
+        try {
+            doc.setEncryption(
+                new jsPDF().enc.makeHash(password),
+                password,
+                ["print", "copy"],
+                "aes-128",
+            );
+        } catch (e) {
+            console.warn("Encryption failed", e);
+        }
+
+        doc.setFontSize(18);
+        doc.text("My Password Vault", 14, 22);
+        doc.setFontSize(11);
+        doc.text(`Generated on ${new Date().toLocaleDateString()}`, 14, 30);
+
+        const tableData = passwords.map((p) => [
+            p.title,
+            p.username || "-",
+            p.password,
+            new Date(p.updated_at).toLocaleDateString(),
+        ]);
+
+        autoTable(doc, {
+            head: [["Title", "Username", "Password", "Last Updated"]],
+            body: tableData,
+            startY: 40,
+            theme: "grid",
+            headStyles: { fillColor: [37, 99, 235] },
+        });
+
+        doc.save("my-passwords.pdf");
     }
 
     function formatDate(dateString) {
@@ -257,6 +443,10 @@
             {#if data.user}
                 <div class="user-info">
                     <span class="welcome">Welcome, {data.user.username}</span>
+                    <a href="/account" class="btn btn-text">Account</a>
+                    <button class="btn btn-text" on:click={startExport}
+                        >Export PDF</button
+                    >
                     <form action="/logout" method="POST">
                         <button type="submit" class="btn btn-text"
                             >Sign Out</button
@@ -462,12 +652,23 @@
         {#if data.user && data.passwords.length > 0}
             <div class="history-section" in:fade>
                 <div class="section-header">
-                    <h2>Your Password Vault</h2>
-                    <span class="badge">{data.passwords.length} Saved</span>
+                    <div class="header-content">
+                        <h2>Your Password Vault</h2>
+                        <span class="badge">{data.passwords.length} Saved</span>
+                    </div>
+                    <div class="search-wrapper">
+                        <span class="search-icon">🔍</span>
+                        <input
+                            type="text"
+                            bind:value={searchQuery}
+                            placeholder="Search passwords..."
+                            class="search-input"
+                        />
+                    </div>
                 </div>
 
                 <div class="history-grid">
-                    {#each data.passwords as item}
+                    {#each filteredPasswords as item}
                         {#if editingId === item.id}
                             <!-- Edit Mode Card -->
                             <div
@@ -478,50 +679,65 @@
                                     <span class="card-label"
                                         >Editing Password</span
                                     >
+                                    <button
+                                        class="delete-icon-btn"
+                                        on:click={() => requestDelete(item.id)}
+                                        title="Delete Password"
+                                    >
+                                        🗑️
+                                    </button>
                                 </div>
-                                <div class="card-body">
-                                    <div class="input-group">
-                                        <label>Title</label>
+
+                                <div class="card-body edit-body">
+                                    <div class="edit-group">
+                                        <label class="edit-label">Title</label>
                                         <input
                                             type="text"
+                                            class="edit-input"
                                             bind:value={editTitle}
-                                            placeholder="Title"
-                                            class="edit-input"
+                                            placeholder="e.g. Gmail"
                                         />
                                     </div>
-                                    <div class="input-group">
-                                        <label>Username</label>
+                                    <div class="edit-group">
+                                        <label class="edit-label"
+                                            >Username</label
+                                        >
                                         <input
                                             type="text"
-                                            bind:value={editUsername}
-                                            placeholder="Username"
                                             class="edit-input"
+                                            bind:value={editUsername}
+                                            placeholder="Username (optional)"
                                         />
                                     </div>
-                                    <div class="input-group">
-                                        <label>Password</label>
-                                        <div class="pass-edit-row">
+                                    <div class="edit-group">
+                                        <label class="edit-label"
+                                            >Password</label
+                                        >
+                                        <div class="password-input-wrapper">
                                             <input
                                                 type="text"
+                                                class="edit-input password"
                                                 bind:value={editPassword}
-                                                class="edit-input pass"
                                             />
                                             <button
-                                                class="btn-icon-small"
-                                                on:click={regenerateSavedPassword}
-                                                title="Regenerate">🔄</button
+                                                class="regen-btn"
+                                                on:click={regenerateForEdit}
+                                                title="Regenerate"
                                             >
+                                                🔄
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="card-footer">
+                                <div class="card-footer right-align">
                                     <button
                                         class="btn-text-sm"
                                         on:click={cancelEditing}>Cancel</button
                                     >
                                     <button
                                         class="btn-primary-sm"
-                                        on:click={updatePassword}>Save</button
+                                        on:click={updatePassword}
+                                        >Save Changes</button
                                     >
                                 </div>
                             </div>
@@ -610,6 +826,150 @@
             </div>
         {/if}
     </main>
+
+    <!-- Delete Confirmation Modal -->
+    {#if showDeleteModal}
+        <div
+            class="modal-overlay"
+            transition:fade
+            on:click={() => (showDeleteModal = false)}
+        >
+            <div class="modal delete-modal-content" on:click|stopPropagation>
+                <div class="delete-icon-wrapper">
+                    <span class="delete-warning-icon">⚠️</span>
+                </div>
+                <div class="delete-text-content">
+                    <h3>Delete Password?</h3>
+                    <p>
+                        This action cannot be undone. Are you sure you want to
+                        permanently delete this password?
+                    </p>
+                </div>
+                <div class="delete-actions">
+                    <button
+                        class="btn-cancel"
+                        on:click={() => (showDeleteModal = false)}
+                        >Cancel</button
+                    >
+                    <button class="btn-confirm-delete" on:click={confirmDelete}
+                        >Yes, Delete</button
+                    >
+                </div>
+            </div>
+        </div>
+    {/if}
+
+    <!-- Export Confirmation Modal -->
+    {#if showExportModal}
+        <div
+            class="modal-overlay"
+            transition:fade
+            on:click={() => (showExportModal = false)}
+        >
+            <div class="modal delete-modal-content" on:click|stopPropagation>
+                <div
+                    class="delete-icon-wrapper"
+                    style="background: #e0e7ff; color: #4f46e5;"
+                >
+                    <span class="delete-warning-icon">🔒</span>
+                </div>
+                <div class="delete-text-content">
+                    <h3>Export to PDF</h3>
+                    <p>
+                        Please enter your login password to encrypt the PDF
+                        file.
+                    </p>
+                    <div
+                        class="input-wrapper"
+                        style="margin-top: 1rem; width: 100%; text-align: left;"
+                    >
+                        <input
+                            type="password"
+                            bind:value={exportPassword}
+                            placeholder="Enter login password"
+                            class:error={exportError}
+                            style="width: 100%; padding: 0.8rem; border: 1px solid #d1d5db; border-radius: 8px;"
+                        />
+                        {#if exportError}
+                            <span
+                                class="error-text"
+                                style="color: #dc2626; font-size: 0.85rem; margin-top: 0.5rem; display: block;"
+                                >{exportError}</span
+                            >
+                        {/if}
+                    </div>
+                </div>
+                <div class="delete-actions">
+                    <button
+                        class="btn-cancel"
+                        on:click={() => (showExportModal = false)}
+                        >Cancel</button
+                    >
+                    <button
+                        class="btn-confirm-delete"
+                        style="background: #4f46e5;"
+                        on:click={confirmExport}>Export</button
+                    >
+                </div>
+            </div>
+        </div>
+    {/if}
+
+    <!-- Verify Password Modal -->
+    {#if showVerifyModal}
+        <div
+            class="modal-overlay"
+            transition:fade
+            on:click={() => (showVerifyModal = false)}
+        >
+            <div class="modal delete-modal-content" on:click|stopPropagation>
+                <div
+                    class="delete-icon-wrapper"
+                    style="background: #e0e7ff; color: #4f46e5;"
+                >
+                    <span class="delete-warning-icon">🛡️</span>
+                </div>
+                <div class="delete-text-content">
+                    <h3>Verify Identity</h3>
+                    <p>
+                        Please enter your login password to continue. Session
+                        valid for 10 minutes.
+                    </p>
+                    <div
+                        class="input-wrapper"
+                        style="margin-top: 1rem; width: 100%; text-align: left;"
+                    >
+                        <input
+                            type="password"
+                            bind:value={verifyPassword}
+                            placeholder="Enter login password"
+                            class:error={verifyError}
+                            style="width: 100%; padding: 0.8rem; border: 1px solid #d1d5db; border-radius: 8px;"
+                        />
+                        {#if verifyError}
+                            <span
+                                class="error-text"
+                                style="color: #dc2626; font-size: 0.85rem; margin-top: 0.5rem; display: block;"
+                                >{verifyError}</span
+                            >
+                        {/if}
+                    </div>
+                </div>
+                <div class="delete-actions">
+                    <button
+                        class="btn-cancel"
+                        on:click={() => (showVerifyModal = false)}
+                        >Cancel</button
+                    >
+                    <button
+                        class="btn-confirm-delete"
+                        style="background: #4f46e5;"
+                        on:click={confirmVerify}>Verify</button
+                    >
+                </div>
+            </div>
+        </div>
+    {/if}
 
     {#if showSaveModal}
         <div
@@ -1075,13 +1435,96 @@
         border-radius: 12px;
         border: 1px solid var(--border-color);
         margin-bottom: 1.5rem;
-        padding: 1rem 1.5rem;
+        padding: 1.25rem 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+    }
+
+    .section-header h2 {
+        margin: 0;
+        font-size: 1.25rem;
+        color: #111827;
+        font-weight: 700;
+    }
+
+    .header-content {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .badge {
+        background: #e0e7ff;
+        color: #4f46e5;
+        padding: 0.35rem 0.8rem;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        letter-spacing: 0.025em;
+    }
+
+    .search-wrapper {
+        position: relative;
+        flex: 1;
+        min-width: 220px;
+        max-width: 320px;
+    }
+
+    .search-icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 0.9rem;
+        color: #9ca3af;
+        pointer-events: none;
+    }
+
+    .search-input {
+        width: 100%;
+        padding: 0.6rem 0.6rem 0.6rem 2.2rem;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        transition: all 0.2s;
+    }
+
+    .search-input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
     }
 
     .history-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
         gap: 1.5rem;
+        max-height: 600px; /* Limit height */
+        overflow-y: auto; /* Enable vertical scrolling */
+        padding: 0.5rem; /* Add padding for scrollbar space */
+    }
+
+    /* Custom Scrollbar for history grid */
+    .history-grid::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .history-grid::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 4px;
+    }
+
+    .history-grid::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+    }
+
+    .history-grid::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
     }
 
     .history-card {
@@ -1094,6 +1537,20 @@
         flex-direction: column;
         gap: 1rem;
         position: relative;
+        z-index: 1; /* Ensure card content is clickable */
+    }
+
+    .modal-card {
+        background: white;
+        border-radius: 16px;
+        width: 90%;
+        max-width: 400px;
+        box-shadow:
+            0 20px 25px -5px rgba(0, 0, 0, 0.1),
+            0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        overflow: hidden;
+        position: relative;
+        z-index: 1001;
     }
 
     .history-card:hover {
@@ -1269,20 +1726,40 @@
         background: none;
         border: none;
         font-size: 0.85rem;
-        color: #6b7280;
-        cursor: pointer;
-        font-weight: 600;
+        padding: 4px;
+        border-radius: 4px;
+        transition: background 0.2s;
+        opacity: 0.7;
     }
 
-    .btn-primary-sm {
-        background: var(--primary-color);
+    .delete-icon-btn:hover {
+        background: #fee2e2;
+        opacity: 1;
+    }
+
+    .delete-modal {
+        max-width: 400px;
+        border-top: 4px solid var(--danger-color);
+    }
+
+    .btn-danger {
+        background: var(--danger-color);
         color: white;
         border: none;
-        padding: 0.4rem 0.8rem;
-        border-radius: 6px;
-        font-size: 0.85rem;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
         font-weight: 600;
         cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .btn-danger:hover {
+        background: #dc2626;
+    }
+
+    .card-footer.right-align {
+        justify-content: flex-end;
+        gap: 0.5rem;
     }
 
     /* NEW MODAL STYLES */
@@ -1292,21 +1769,83 @@
         left: 0;
         width: 100%;
         height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        backdrop-filter: blur(5px);
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(8px);
         display: flex;
         justify-content: center;
         align-items: center;
-        z-index: 100;
+        z-index: 1000;
     }
 
-    .modal-card {
-        background: white;
+    .modal {
+        background: #ffffff; /* Explicitly white */
         border-radius: 16px;
         width: 90%;
-        max-width: 450px;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        max-width: 400px;
+        box-shadow:
+            0 20px 25px -5px rgba(0, 0, 0, 0.1),
+            0 10px 10px -5px rgba(0, 0, 0, 0.04);
         overflow: hidden;
+        animation: modalSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        position: relative; /* Ensure stacking context */
+        z-index: 1001; /* Above overlay */
+    }
+
+    @keyframes modalSlideIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px) scale(0.95);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    .delete-icon-btn {
+        background: transparent;
+        border: none;
+        font-size: 1.2rem;
+        padding: 8px;
+        border-radius: 50%;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        color: #ef4444;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .delete-icon-btn:hover {
+        background: #fee2e2;
+        transform: scale(1.1);
+    }
+
+    .delete-icon-btn:active {
+        transform: scale(0.95);
+    }
+
+    .btn-primary-sm {
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        padding: 0.6rem 1.2rem;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+    }
+
+    .btn-primary-sm:hover {
+        background: #1d4ed8;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
+    }
+
+    .btn-primary-sm:active {
+        transform: translateY(0);
     }
 
     .modal-header {
@@ -1419,5 +1958,146 @@
 
     .toast.success {
         background: var(--success-color);
+    }
+    .edit-body {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        padding: 0.5rem 0;
+    }
+
+    .edit-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #6b7280;
+        margin-bottom: 0.25rem;
+        display: block;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .edit-input {
+        width: 100%;
+        padding: 0.6rem;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        font-size: 0.95rem;
+        transition: all 0.2s;
+    }
+
+    .edit-input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+    }
+
+    .edit-input.password {
+        font-family: "JetBrains Mono", monospace;
+        letter-spacing: -0.5px;
+    }
+
+    .password-input-wrapper {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .regen-btn {
+        background: #f3f4f6;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        width: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .regen-btn:hover {
+        background: #e5e7eb;
+    }
+    .delete-modal-content {
+        padding: 2rem;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1.5rem;
+    }
+
+    .delete-icon-wrapper {
+        width: 64px;
+        height: 64px;
+        background: #fee2e2;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 0.5rem;
+    }
+
+    .delete-warning-icon {
+        font-size: 2rem;
+    }
+
+    .delete-text-content h3 {
+        margin: 0 0 0.5rem 0;
+        color: #111827;
+        font-size: 1.25rem;
+        font-weight: 700;
+    }
+
+    .delete-text-content p {
+        margin: 0;
+        color: #6b7280;
+        font-size: 0.95rem;
+        line-height: 1.5;
+    }
+
+    .delete-actions {
+        display: flex;
+        gap: 1rem;
+        width: 100%;
+        margin-top: 0.5rem;
+    }
+
+    .btn-cancel,
+    .btn-confirm-delete {
+        flex: 1;
+        padding: 0.75rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: none;
+    }
+
+    .btn-cancel {
+        background: white;
+        border: 1px solid #d1d5db;
+        color: #374151;
+    }
+
+    .btn-cancel:hover {
+        background: #f9fafb;
+        border-color: #9ca3af;
+    }
+
+    .btn-confirm-delete {
+        background: #dc2626;
+        color: white;
+        box-shadow: 0 4px 6px -1px rgba(220, 38, 38, 0.3);
+        border-radius: 8px; /* Ensure radius matches button */
+    }
+
+    .btn-confirm-delete:hover {
+        background: #b91c1c;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 8px -1px rgba(220, 38, 38, 0.4);
+    }
+
+    .btn-confirm-delete:active {
+        transform: translateY(0);
     }
 </style>

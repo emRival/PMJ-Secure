@@ -51,3 +51,22 @@ export async function PUT({ request, locals }) {
     stmt.run(password, title, username || null, id);
     return json({ success: true });
 }
+
+export async function DELETE({ request, locals }) {
+    if (!locals.user) {
+        return json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const { id } = await request.json();
+
+    // Verify ownership
+    const checkStmt = db.prepare('SELECT user_id FROM passwords WHERE id = ?');
+    const record = checkStmt.get(id);
+
+    if (!record || record.user_id !== locals.user.id) {
+        return json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const stmt = db.prepare('DELETE FROM passwords WHERE id = ?');
+    stmt.run(id);
+    return json({ success: true });
+}

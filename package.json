@@ -24,6 +24,8 @@
 	"dependencies": {
 		"bcryptjs": "^3.0.3",
 		"better-sqlite3": "^12.5.0",
+		"jspdf": "^3.0.4",
+		"jspdf-autotable": "^5.0.2",
 		"uuid": "^13.0.0"
 	}
 }
