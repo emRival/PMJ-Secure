@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: pmj-secure-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - ORIGIN=http://localhost:3000 # Change this to your domain in production
+      - DB_PATH=/app/data/passwords.db
+      - BODY_SIZE_LIMIT=0
+    volumes:
+      - ./data:/app/data
