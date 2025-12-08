@@ -1605,6 +1605,7 @@
 
     .btn-icon-plain:hover {
         opacity: 1;
+        transform: scale(1.1);
     }
 
     .card-body {
@@ -2099,5 +2100,134 @@
 
     .btn-confirm-delete:active {
         transform: translateY(0);
+    }
+
+    /* Mobile Responsiveness & Polishing */
+    @media (max-width: 768px) {
+        .container {
+            padding: 1rem;
+            max-width: 100%;
+        }
+
+        .header {
+            flex-direction: column;
+            gap: 1.5rem;
+            align-items: center;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .brand {
+            justify-content: center;
+        }
+
+        .user-actions {
+            flex-direction: column;
+            width: 100%;
+            gap: 0.8rem;
+        }
+
+        .user-info {
+            flex-direction: column;
+            width: 100%;
+            gap: 0.8rem;
+        }
+
+        .user-actions .btn,
+        .user-info .btn,
+        .user-info form {
+            width: 100%;
+        }
+
+        .user-info form .btn {
+            width: 100%;
+        }
+
+        .hero-section h2,
+        .landing-hero h2 {
+            font-size: 1.8rem;
+        }
+
+        .generator-card {
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .features-grid {
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+
+        .password-display-container {
+            flex-direction: column;
+            gap: 0.5rem;
+            padding: 1rem;
+        }
+
+        .password-display {
+            font-size: 1.5rem; /* Smaller font for mobile */
+            word-break: break-all;
+            padding: 0.5rem;
+        }
+
+        .display-actions {
+            padding-right: 0;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .controls {
+            gap: 2rem;
+        }
+
+        .toggles {
+            grid-template-columns: repeat(2, 1fr); /* 2 columns on mobile */
+        }
+
+        .actions {
+            grid-template-columns: 1fr; /* Stack buttons */
+        }
+
+        .big-btn {
+            padding: 1rem;
+        }
+
+        .section-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+            padding: 1rem;
+        }
+
+        .header-content {
+            justify-content: space-between;
+        }
+
+        .search-wrapper {
+            max-width: 100%;
+        }
+
+        .history-grid {
+            grid-template-columns: 1fr; /* Single column for history cards */
+            padding: 0.2rem;
+        }
+
+        .modal-card,
+        .delete-modal-content {
+            width: 95%;
+            margin: 0 auto;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .toggles {
+            grid-template-columns: 1fr; /* 1 column for very small screens */
+        }
+
+        .password-display {
+            font-size: 1.2rem;
+        }
     }
 </style>

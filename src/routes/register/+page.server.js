@@ -21,7 +21,8 @@ export const actions = {
             cookies.set('session_id', sessionId, {
                 path: '/',
                 httpOnly: true,
-                sameSite: 'strict',
+                sameSite: 'lax',
+                secure: request.url.startsWith('https') || request.headers.get('x-forwarded-proto') === 'https',
                 maxAge: 60 * 60 * 24 * 7
             });
         } catch (err) {

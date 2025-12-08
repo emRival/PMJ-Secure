@@ -212,4 +212,18 @@
     a:hover {
         text-decoration: underline;
     }
+
+    @media (max-width: 480px) {
+        .auth-card {
+            padding: 1.5rem;
+        }
+
+        .logo {
+            font-size: 2.5rem;
+        }
+
+        h1 {
+            font-size: 1.25rem;
+        }
+    }
 </style>
