@@ -7,8 +7,12 @@ export const load = async ({ locals }) => {
     if (!locals.user) {
         throw redirect(302, '/login');
     }
+
+    const is2FAEnabled = Auth.get2FAStatus(locals.user.id);
+
     return {
-        user: locals.user
+        user: locals.user,
+        is2FAEnabled
     };
 };
 
@@ -50,5 +54,45 @@ export const actions = {
         updateStmt.run(hash, locals.user.id);
 
         return { success: true, message: 'Password updated successfully' };
+    },
+
+    setup2FA: async ({ locals }) => {
+        if (!locals.user) return fail(401, { error: 'Unauthorized' });
+
+        const secret = await Auth.create2FASecret(locals.user.id);
+        const { authenticator } = await import('otplib');
+        const QRCode = await import('qrcode');
+
+        const otpauth = authenticator.keyuri(locals.user.username, 'PMJ Secure', secret);
+        const qrCode = await QRCode.toDataURL(otpauth);
+
+        return {
+            qrCode,
+            secret,
+            message: 'Scan the QR code with your authenticator app'
+        };
+    },
+
+    verify2FA: async ({ request, locals }) => {
+        if (!locals.user) return fail(401, { error: 'Unauthorized' });
+
+        const data = await request.formData();
+        const token = data.get('token');
+
+        try {
+            const success = await Auth.enable2FA(locals.user.id, token);
+            if (!success) {
+                return fail(400, { error2fa: 'Invalid code. Please try again.' });
+            }
+            return { success: true, message: 'Two-Factor Authentication enabled successfully!' };
+        } catch (err) {
+            return fail(400, { error2fa: err.message });
+        }
+    },
+
+    disable2FA: async ({ locals }) => {
+        if (!locals.user) return fail(401, { error: 'Unauthorized' });
+        await Auth.disable2FA(locals.user.id);
+        return { success: true, message: 'Two-Factor Authentication disabled.' };
     }
 };

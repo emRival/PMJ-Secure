@@ -25,7 +25,11 @@ export const Auth = {
 
         const valid = await bcrypt.compare(password, user.password_hash);
         if (!valid) return null;
-        return { id: user.id, username: user.username };
+        return {
+            id: user.id,
+            username: user.username,
+            two_factor_enabled: user.two_factor_enabled === 1
+        };
     },
 
     createSession(userId) {
@@ -38,16 +42,67 @@ export const Auth = {
 
     getSession(sessionId) {
         const stmt = db.prepare(`
-      SELECT sessions.*, users.username 
+      SELECT sessions.*, users.username, users.two_factor_enabled
       FROM sessions 
       JOIN users ON sessions.user_id = users.id 
       WHERE sessions.id = ? AND sessions.expires_at > datetime('now')
     `);
-        return stmt.get(sessionId);
+        const session = stmt.get(sessionId);
+        if (session) {
+            session.two_factor_enabled = session.two_factor_enabled === 1;
+        }
+        return session;
     },
 
     deleteSession(sessionId) {
         const stmt = db.prepare('DELETE FROM sessions WHERE id = ?');
         stmt.run(sessionId);
+    },
+
+    // 2FA Methods
+    async create2FASecret(userId) {
+        const { authenticator } = await import('otplib');
+        const secret = authenticator.generateSecret();
+        const stmt = db.prepare('UPDATE users SET two_factor_secret = ? WHERE id = ?');
+        stmt.run(secret, userId);
+        return secret;
+    },
+
+    async enable2FA(userId, token) {
+        const { authenticator } = await import('otplib');
+        const stmt = db.prepare('SELECT two_factor_secret FROM users WHERE id = ?');
+        const user = stmt.get(userId);
+
+        if (!user || !user.two_factor_secret) {
+            throw new Error("2FA Setup not initiated");
+        }
+
+        const isValid = authenticator.check(token, user.two_factor_secret);
+        if (!isValid) return false;
+
+        const updateStmt = db.prepare('UPDATE users SET two_factor_enabled = 1 WHERE id = ?');
+        updateStmt.run(userId);
+        return true;
+    },
+
+    async disable2FA(userId) {
+        const stmt = db.prepare('UPDATE users SET two_factor_enabled = 0, two_factor_secret = NULL WHERE id = ?');
+        stmt.run(userId);
+    },
+
+    async validate2FA(userId, token) {
+        const { authenticator } = await import('otplib');
+        const stmt = db.prepare('SELECT two_factor_secret FROM users WHERE id = ?');
+        const user = stmt.get(userId);
+
+        if (!user || !user.two_factor_secret) return false;
+
+        return authenticator.check(token, user.two_factor_secret);
+    },
+
+    get2FAStatus(userId) {
+        const stmt = db.prepare('SELECT two_factor_enabled FROM users WHERE id = ?');
+        const user = stmt.get(userId);
+        return user ? user.two_factor_enabled === 1 : false;
     }
 };

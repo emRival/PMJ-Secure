@@ -16,7 +16,37 @@ export const actions = {
             return fail(400, { error: 'Invalid username or password' });
         }
 
+        if (user.two_factor_enabled) {
+            return { requires2FA: true, userId: user.id, username: user.username };
+        }
+
         const sessionId = Auth.createSession(user.id);
+        cookies.set('session_id', sessionId, {
+            path: '/',
+            httpOnly: true,
+            sameSite: 'lax',
+            secure: request.url.startsWith('https') || request.headers.get('x-forwarded-proto') === 'https',
+            maxAge: 60 * 60 * 24 * 7 // 7 days
+        });
+
+        throw redirect(303, '/');
+    },
+
+    login2FA: async ({ request, cookies }) => {
+        const data = await request.formData();
+        const userId = data.get('userId');
+        const token = data.get('token');
+
+        if (!userId || !token) {
+            return fail(400, { error: '2FA code required', requires2FA: true, userId });
+        }
+
+        const isValid = await Auth.validate2FA(userId, token);
+        if (!isValid) {
+            return fail(400, { error: 'Invalid 2FA code', requires2FA: true, userId });
+        }
+
+        const sessionId = Auth.createSession(userId);
         cookies.set('session_id', sessionId, {
             path: '/',
             httpOnly: true,

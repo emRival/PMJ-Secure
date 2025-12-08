@@ -8,58 +8,100 @@
 
 <div class="container">
     <div class="auth-card">
-        <div class="header">
-            <a href="/" class="back-link">← Back to Home</a>
-            <div class="logo">🛡️</div>
-            <h1>Welcome Back</h1>
-            <p class="subtitle">Log in to access your secure vault.</p>
-        </div>
-
-        <form method="POST" action="?/login" use:enhance>
-            <div class="form-group">
-                <label for="username">Username</label>
-                <input
-                    type="text"
-                    id="username"
-                    name="username"
-                    placeholder="Enter your username"
-                    required
-                />
+        {#if form?.requires2FA}
+            <div class="header">
+                <div class="logo">🔐</div>
+                <h1>Two-Factor Check</h1>
+                <p class="subtitle">
+                    Enter the code from your authenticator app.
+                </p>
             </div>
 
-            <div class="form-group">
-                <label for="password">Password</label>
-                <div class="password-wrapper">
+            <form method="POST" action="?/login2FA" use:enhance>
+                <input type="hidden" name="userId" value={form.userId} />
+
+                <div class="form-group">
+                    <label for="token">Authentication Code</label>
                     <input
-                        type={showPassword ? "text" : "password"}
-                        id="password"
-                        name="password"
-                        placeholder="Enter your password"
+                        type="text"
+                        id="token"
+                        name="token"
+                        placeholder="000 000"
+                        required
+                        autofocus
+                        maxlength="6"
+                        style="text-align: center; letter-spacing: 0.2rem; font-size: 1.5rem;"
+                    />
+                </div>
+
+                {#if form?.error}
+                    <div class="error" transition:fade>{form.error}</div>
+                {/if}
+
+                <button type="submit" class="btn-submit">Verify</button>
+
+                <div style="text-align:center; margin-top: 1rem;">
+                    <a href="/login" class="back-link" style="position:static;"
+                        >Cancel</a
+                    >
+                </div>
+            </form>
+        {:else}
+            <div class="header">
+                <a href="/" class="back-link">← Back to Home</a>
+                <div class="logo">🛡️</div>
+                <h1>Welcome Back</h1>
+                <p class="subtitle">Log in to access your secure vault.</p>
+            </div>
+
+            <form method="POST" action="?/login" use:enhance>
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input
+                        type="text"
+                        id="username"
+                        name="username"
+                        placeholder="Enter your username"
                         required
                     />
-                    <button
-                        type="button"
-                        class="toggle-btn"
-                        on:click={() => (showPassword = !showPassword)}
-                        tabindex="-1"
-                    >
-                        {showPassword ? "👁️" : "🙈"}
-                    </button>
                 </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <div class="password-wrapper">
+                        <input
+                            type={showPassword ? "text" : "password"}
+                            id="password"
+                            name="password"
+                            placeholder="Enter your password"
+                            required
+                        />
+                        <button
+                            type="button"
+                            class="toggle-btn"
+                            on:click={() => (showPassword = !showPassword)}
+                            tabindex="-1"
+                        >
+                            {showPassword ? "👁️" : "🙈"}
+                        </button>
+                    </div>
+                </div>
+
+                {#if form?.error}
+                    <div class="error" transition:fade>{form.error}</div>
+                {/if}
+
+                <button type="submit" class="btn-submit">Sign In</button>
+            </form>
+
+            <div class="footer">
+                <p>
+                    Don't have an account? <a href="/register"
+                        >Sign up for free</a
+                    >
+                </p>
             </div>
-
-            {#if form?.error}
-                <div class="error" transition:fade>{form.error}</div>
-            {/if}
-
-            <button type="submit" class="btn-submit">Sign In</button>
-        </form>
-
-        <div class="footer">
-            <p>
-                Don't have an account? <a href="/register">Sign up for free</a>
-            </p>
-        </div>
+        {/if}
     </div>
 </div>
 

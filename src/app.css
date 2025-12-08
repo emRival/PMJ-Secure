@@ -10,6 +10,24 @@
   --border-color: #e5e7eb;
   --danger-color: #ef4444;
   --success-color: #10b981;
+  --input-bg: #ffffff;
+  --input-border: #d1d5db;
+  --header-bg: transparent;
+}
+
+:root.dark {
+  --primary-color: #3b82f6;
+  --primary-hover: #60a5fa;
+  --bg-color: #111827;
+  --text-color: #f9fafb;
+  --text-muted: #9ca3af;
+  --card-bg: #1f2937;
+  --border-color: #374151;
+  --danger-color: #f87171;
+  --success-color: #34d399;
+  --input-bg: #374151;
+  --input-border: #4b5563;
+  --header-bg: #111827;
 }
 
 * {
@@ -22,6 +40,7 @@ body {
   background-color: var(--bg-color);
   color: var(--text-color);
   line-height: 1.5;
+  transition: background-color 0.3s, color 0.3s;
 }
 
 h1,
@@ -32,7 +51,7 @@ h5,
 h6 {
   margin-top: 0;
   font-weight: 700;
-  color: #111827;
+  color: var(--text-color);
 }
 
 button {
@@ -65,14 +84,14 @@ button {
 }
 
 .btn-secondary {
-  background-color: white;
+  background-color: var(--card-bg);
   color: var(--text-color);
   border: 1px solid var(--border-color);
 }
 
 .btn-secondary:hover {
-  background-color: #f9fafb;
-  border-color: #d1d5db;
+  background-color: var(--bg-color);
+  border-color: var(--text-muted);
 }
 
 .btn-sm {
@@ -89,7 +108,7 @@ button {
 input[type="range"] {
   width: 100%;
   height: 6px;
-  background: #e5e7eb;
+  background: var(--border-color);
   border-radius: 5px;
   outline: none;
   -webkit-appearance: none;
@@ -103,9 +122,81 @@ input[type="range"]::-webkit-slider-thumb {
   border-radius: 50%;
   cursor: pointer;
   transition: background .15s ease-in-out;
-  box-shadow: 0 0 0 3px white, 0 0 0 5px rgba(37, 99, 235, 0.2);
+  box-shadow: 0 0 0 3px var(--card-bg), 0 0 0 5px rgba(37, 99, 235, 0.2);
 }
 
 input[type="range"]::-webkit-slider-thumb:hover {
   background: var(--primary-hover);
+}
+
+/* Dark mode specific global overrides */
+:root.dark input[type="text"],
+:root.dark input[type="password"],
+:root.dark input[type="email"] {
+  background-color: var(--input-bg);
+  border-color: var(--input-border);
+  color: var(--text-color);
+}
+
+:root.dark input::placeholder {
+  color: var(--text-muted);
+}
+
+:root.dark .excel-table th {
+  background-color: #374151;
+  color: var(--text-color);
+  border-bottom-color: #4b5563;
+}
+
+:root.dark .excel-table td {
+  border-bottom-color: #374151;
+}
+
+:root.dark .excel-table-wrapper {
+  background-color: #1f2937;
+  border-color: #374151;
+}
+
+:root.dark .upload-wrapper {
+  background-color: rgba(55, 65, 81, 0.5);
+  border-color: #4b5563;
+}
+
+:root.dark .upload-wrapper:hover {
+  background-color: rgba(59, 130, 246, 0.1);
+  border-color: var(--primary-color);
+}
+
+:root.dark .card-row {
+  background-color: #374151;
+  color: #d1d5db;
+}
+
+:root.dark .row-pass {
+  color: #f3f4f6;
+}
+
+:root.dark .action-icon {
+  background-color: #374151;
+  border-color: #4b5563;
+  color: #d1d5db;
+}
+
+:root.dark .action-icon:hover {
+  background-color: #1f2937;
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+:root.dark .success-box {
+  background-color: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+:root.dark .status-msg.processing {
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+:root.dark .status-msg.error {
+  background: rgba(239, 68, 68, 0.1);
 }

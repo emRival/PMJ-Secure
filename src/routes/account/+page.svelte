@@ -115,6 +115,89 @@
                 </form>
             </div>
         </div>
+
+        <!-- Two-Factor Authentication Card -->
+        <div class="card two-factor-card">
+            <div class="card-header">
+                <h2>Two-Factor Authentication</h2>
+            </div>
+            <div class="card-body">
+                {#if data.is2FAEnabled}
+                    <div class="status-enabled">
+                        <div class="icon">✅</div>
+                        <p>2FA is currently enabled for your account.</p>
+                    </div>
+
+                    <form method="POST" action="?/disable2FA" use:enhance>
+                        <button type="submit" class="btn btn-danger"
+                            >Disable 2FA</button
+                        >
+                    </form>
+                {:else}
+                    <div class="status-disabled">
+                        <p>
+                            Protect your account with an extra layer of
+                            security. When 2FA is enabled, you will need to
+                            enter a code from your mobile authenticator app when
+                            logging in.
+                        </p>
+                    </div>
+
+                    {#if form?.qrCode}
+                        <div class="setup-2fa">
+                            <div class="qr-code">
+                                <img src={form.qrCode} alt="2FA QR Code" />
+                            </div>
+                            <div class="secret-key">
+                                <p>Or enter this secret key manually:</p>
+                                <code>{form.secret}</code>
+                            </div>
+
+                            <form
+                                method="POST"
+                                action="?/verify2FA"
+                                use:enhance
+                                class="verify-form"
+                            >
+                                <div class="form-group">
+                                    <label for="token"
+                                        >Enter Code from App</label
+                                    >
+                                    <input
+                                        type="text"
+                                        name="token"
+                                        placeholder="000 000"
+                                        maxlength="6"
+                                        required
+                                        class="center-text"
+                                    />
+                                </div>
+                                {#if form?.error2fa}
+                                    <div class="alert error">
+                                        {form.error2fa}
+                                    </div>
+                                {/if}
+                                <button type="submit" class="btn btn-primary"
+                                    >Verify & Enable</button
+                                >
+                            </form>
+                        </div>
+                    {:else}
+                        <form method="POST" action="?/setup2FA" use:enhance>
+                            <button type="submit" class="btn btn-primary"
+                                >Enable 2FA</button
+                            >
+                        </form>
+                    {/if}
+                {/if}
+
+                {#if form?.message && !form?.qrCode}
+                    <div class="alert success" style="margin-top: 1rem;">
+                        {form.message}
+                    </div>
+                {/if}
+            </div>
+        </div>
     </div>
 </div>
 
@@ -275,5 +358,119 @@
 
     .btn-primary:hover {
         background: #1d4ed8;
+    }
+
+    .btn-danger {
+        width: 100%;
+        padding: 0.85rem;
+        background: #ef4444;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .btn-danger:hover {
+        background: #dc2626;
+    }
+
+    .setup-2fa {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1.5rem;
+        text-align: center;
+    }
+
+    .qr-code {
+        background: white;
+        padding: 1rem;
+        border-radius: 8px;
+        border: 1px solid #e5e7eb;
+    }
+
+    .qr-code img {
+        display: block;
+        max-width: 200px;
+        height: auto;
+    }
+
+    .secret-key {
+        background: #f3f4f6;
+        padding: 1rem;
+        border-radius: 8px;
+        width: 100%;
+    }
+
+    .secret-key p {
+        margin: 0 0 0.5rem 0;
+        font-size: 0.9rem;
+        color: #6b7280;
+    }
+
+    .secret-key code {
+        font-family: "JetBrains Mono", monospace;
+        font-weight: 600;
+        color: #1f2937;
+        font-size: 1.1rem;
+        word-break: break-all;
+    }
+
+    .verify-form {
+        width: 100%;
+    }
+
+    .status-enabled {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+        text-align: center;
+        margin-bottom: 1.5rem;
+        background: #ecfdf5;
+        padding: 1.5rem;
+        border-radius: 8px;
+        border: 1px solid #a7f3d0;
+    }
+
+    .status-enabled .icon {
+        font-size: 2rem;
+    }
+
+    .status-enabled p {
+        margin: 0;
+        color: #065f46;
+        font-weight: 500;
+    }
+
+    .status-disabled {
+        margin-bottom: 1.5rem;
+        color: #6b7280;
+        font-size: 0.95rem;
+        line-height: 1.6;
+    }
+
+    .center-text {
+        text-align: center;
+        letter-spacing: 0.2rem;
+        font-size: 1.5rem;
+    }
+
+    /* Dark Mode Overrides for Account Page */
+    :global(.dark) .secret-key {
+        background: #374151;
+    }
+    :global(.dark) .secret-key code {
+        color: #e5e7eb;
+    }
+    :global(.dark) .status-enabled {
+        background: rgba(16, 185, 129, 0.1);
+        border-color: rgba(16, 185, 129, 0.2);
+    }
+    :global(.dark) .status-enabled p {
+        color: #34d399;
     }
 </style>

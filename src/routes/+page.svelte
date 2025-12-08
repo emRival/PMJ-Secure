@@ -424,6 +424,136 @@
         }).format(date);
     }
 
+    // Excel Bulk Generation State
+    let excelProcessing = false;
+    let excelError = "";
+    let excelSuccessMsg = "";
+    let processedWorkbook = null;
+    let excelPreviewData = []; // To store data for the table preview
+    let excelPasswordColIndex = -1; // To highlight the password column
+
+    import * as XLSX from "xlsx";
+
+    function generateSinglePassword(len, upper, lower, nums, syms) {
+        const uppercaseChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        const lowercaseChars = "abcdefghijklmnopqrstuvwxyz";
+        const numberChars = "0123456789";
+        const symbolChars = "!@#$%^&*()_+~`|}{[]:;?><,./-=";
+
+        let chars = "";
+        if (upper) chars += uppercaseChars;
+        if (lower) chars += lowercaseChars;
+        if (nums) chars += numberChars;
+        if (syms) chars += symbolChars;
+
+        if (chars === "") return "";
+
+        let password = "";
+        let values = new Uint32Array(len);
+        crypto.getRandomValues(values);
+        for (let i = 0; i < len; i++) {
+            password += chars.charAt(values[i] % chars.length);
+        }
+        return password;
+    }
+
+    function handleExcelUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        excelProcessing = true;
+        excelError = "";
+        excelSuccessMsg = "";
+        processedWorkbook = null;
+        excelPreviewData = [];
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: "array" });
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+
+                // Convert to array of arrays
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, {
+                    header: 1,
+                });
+
+                if (!jsonData || jsonData.length === 0) {
+                    throw new Error("File appears to be empty.");
+                }
+
+                // Find 'password' header
+                const headers = jsonData[0];
+                const passColIndex = headers.findIndex(
+                    (h) => h && h.toString().toLowerCase().includes("password"),
+                );
+
+                if (passColIndex === -1) {
+                    throw new Error(
+                        "Could not find a column with header 'password'. Please add one.",
+                    );
+                }
+                excelPasswordColIndex = passColIndex;
+
+                let count = 0;
+                // Start from row 1 (users data)
+                for (let i = 1; i < jsonData.length; i++) {
+                    const row = jsonData[i];
+                    // Check if row has any content to avoid filling infinite empty rows
+                    if (
+                        row &&
+                        row.some(
+                            (cell) =>
+                                cell !== null &&
+                                cell !== "" &&
+                                cell !== undefined,
+                        )
+                    ) {
+                        // Ensure row handles the column index
+                        while (row.length <= passColIndex) {
+                            row.push("");
+                        }
+                        // Generate password using current UI settings
+                        row[passColIndex] = generateSinglePassword(
+                            length,
+                            useUppercase,
+                            useLowercase,
+                            useNumbers,
+                            useSymbols,
+                        );
+                        count++;
+                    }
+                }
+
+                if (count === 0) {
+                    throw new Error("No data rows found to populate.");
+                }
+
+                // Convert back to sheet
+                const newSheet = XLSX.utils.aoa_to_sheet(jsonData);
+                workbook.Sheets[sheetName] = newSheet;
+                processedWorkbook = workbook;
+                excelPreviewData = jsonData; // Store all data for preview
+                excelSuccessMsg = `Success! Generated passwords for ${count} rows.`;
+            } catch (err) {
+                console.error(err);
+                excelError = err.message || "Failed to process Excel file.";
+            } finally {
+                excelProcessing = false;
+                // Reset file input so same file can be selected again if needed
+                event.target.value = "";
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    function downloadExcel() {
+        if (!processedWorkbook) return;
+        XLSX.writeFile(processedWorkbook, "passwords_filled.xlsx");
+    }
+
     import { onMount } from "svelte";
     onMount(() => {
         generatePassword();
@@ -440,6 +570,24 @@
             </div>
         </div>
         <div class="user-actions">
+            <!-- Theme Toggle -->
+            <button
+                class="btn btn-icon-plain"
+                aria-label="Toggle Dark Mode"
+                style="margin-right: 0.5rem;"
+                on:click={() => {
+                    if (document.documentElement.classList.contains("dark")) {
+                        document.documentElement.classList.remove("dark");
+                        localStorage.theme = "light";
+                    } else {
+                        document.documentElement.classList.add("dark");
+                        localStorage.theme = "dark";
+                    }
+                }}
+            >
+                🌗
+            </button>
+
             {#if data.user}
                 <div class="user-info">
                     <span class="welcome">Welcome, {data.user.username}</span>
@@ -637,6 +785,93 @@
                         Save to Vault
                     </button>
                 </div>
+            </div>
+        </div>
+
+        <!-- Excel Bulk Generator Section -->
+        <div class="card generator-card">
+            <div
+                class="section-header"
+                style="margin-bottom: 1rem; padding: 0; box-shadow: none; border: none;"
+            >
+                <h2 style="font-size: 1.5rem;">Bulk Generate via Excel</h2>
+            </div>
+            <div class="excel-content">
+                <p style="color: var(--text-muted); margin-bottom: 1.5rem;">
+                    Upload an Excel file with a column named <strong
+                        >password</strong
+                    >. We will detect it, fill empty rows with secure passwords,
+                    and let you download the result.
+                </p>
+
+                <div class="upload-wrapper">
+                    <input
+                        type="file"
+                        accept=".xlsx, .xls"
+                        on:change={handleExcelUpload}
+                        disabled={excelProcessing}
+                        class="file-input"
+                    />
+                </div>
+
+                {#if excelProcessing}
+                    <div class="status-msg processing">Processing...</div>
+                {:else if excelError}
+                    <div class="status-msg error">{excelError}</div>
+                {:else if excelSuccessMsg}
+                    <div class="success-box" in:fade>
+                        <div class="status-msg success">
+                            ✅ {excelSuccessMsg}
+                        </div>
+
+                        {#if excelPreviewData.length > 0}
+                            <div class="excel-table-wrapper">
+                                <table class="excel-table">
+                                    <thead>
+                                        <tr>
+                                            {#each excelPreviewData[0] as header, i}
+                                                <th
+                                                    class:highlight={i ===
+                                                        excelPasswordColIndex}
+                                                    >{header ||
+                                                        `Col ${i + 1}`}</th
+                                                >
+                                            {/each}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {#each excelPreviewData.slice(1) as row}
+                                            <!-- Only show rows that have data -->
+                                            {#if row.some((cell) => cell !== null && cell !== "")}
+                                                <tr>
+                                                    {#each row as cell, i}
+                                                        <td
+                                                            class:highlight={i ===
+                                                                excelPasswordColIndex}
+                                                        >
+                                                            {#if i === excelPasswordColIndex}
+                                                                <span
+                                                                    class="generated-preview"
+                                                                    >{cell}</span
+                                                                >
+                                                            {:else}
+                                                                {cell || ""}
+                                                            {/if}
+                                                        </td>
+                                                    {/each}
+                                                </tr>
+                                            {/if}
+                                        {/each}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {/if}
+
+                        <button class="btn btn-primary" on:click={downloadExcel}
+                            >Download Excel File</button
+                        >
+                    </div>
+                {/if}
             </div>
         </div>
 
@@ -2228,6 +2463,142 @@
 
         .password-display {
             font-size: 1.2rem;
+        }
+    }
+
+    /* Excel Feature Styles */
+    .excel-content {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .upload-wrapper {
+        border: 2px dashed var(--border-color);
+        border-radius: 12px;
+        padding: 2rem;
+        text-align: center;
+        transition: all 0.2s;
+        background: #f9fafb;
+    }
+
+    .upload-wrapper:hover {
+        border-color: var(--primary-color);
+        background: #eff6ff;
+    }
+
+    .file-input {
+        width: 100%;
+        max-width: 300px;
+        margin: 0 auto;
+    }
+
+    .status-msg {
+        padding: 1rem;
+        border-radius: 8px;
+        font-weight: 500;
+        text-align: center;
+    }
+
+    .status-msg.processing {
+        background: #eff6ff;
+        color: var(--primary-color);
+    }
+
+    .status-msg.error {
+        background: #fee2e2;
+        color: var(--danger-color);
+    }
+
+    .success-box {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        align-items: center;
+        background: #ecfdf5;
+        padding: 1.5rem;
+        border-radius: 8px;
+        border: 1px solid #a7f3d0;
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .status-msg.success {
+        background: transparent;
+        color: var(--success-color);
+        font-size: 1.1rem;
+        font-weight: 600;
+        padding: 0;
+    }
+
+    /* Excel Table Preview Styles */
+    .excel-table-wrapper {
+        width: 100%;
+        max-height: 400px;
+        overflow-y: auto;
+        overflow-x: auto;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        background: white;
+        margin-bottom: 1rem;
+    }
+
+    .excel-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9rem;
+        text-align: left;
+    }
+
+    .excel-table th,
+    .excel-table td {
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid #f3f4f6;
+        white-space: nowrap;
+    }
+
+    .excel-table th {
+        background: #f9fafb;
+        font-weight: 600;
+        color: #4b5563;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    .excel-table th.highlight {
+        background: #eff6ff;
+        color: var(--primary-color);
+        border-bottom: 2px solid var(--primary-color);
+    }
+
+    .excel-table td.highlight {
+        background: #f8fafc;
+        border-left: 2px solid transparent;
+        border-right: 2px solid transparent;
+    }
+
+    .excel-table td.highlight:first-child {
+        border-left: 2px solid var(--primary-color);
+    }
+
+    .generated-preview {
+        font-family: "JetBrains Mono", monospace;
+        color: var(--primary-color);
+        font-weight: 600;
+        background: #eff6ff;
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        display: inline-block;
+    }
+
+    @media (max-width: 768px) {
+        .excel-table {
+            font-size: 0.8rem;
+        }
+        .excel-table th,
+        .excel-table td {
+            padding: 0.5rem;
         }
     }
 </style>

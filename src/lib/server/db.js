@@ -40,4 +40,13 @@ try {
   // Column likely already exists, ignore
 }
 
+// Migration: Add 2FA columns to users
+try {
+  db.exec("ALTER TABLE users ADD COLUMN two_factor_secret TEXT");
+} catch (e) { }
+
+try {
+  db.exec("ALTER TABLE users ADD COLUMN two_factor_enabled INTEGER DEFAULT 0");
+} catch (e) { }
+
 export default db;
