@@ -3,33 +3,48 @@
 :root {
   --primary-color: #2563eb;
   --primary-hover: #1d4ed8;
-  --bg-color: #f3f4f6;
-  --text-color: #1f2937;
-  --text-muted: #6b7280;
-  --card-bg: #ffffff;
-  --border-color: #e5e7eb;
+  --bg-color: #f1f5f9;
+  /* Softer gray-blue background */
+  --text-color: #1e293b;
+  /* Slightly softer black */
+  --text-muted: #64748b;
+  --card-bg: #f8fafc;
+  /* Very soft blue-gray instead of pure white */
+  --border-color: #e2e8f0;
   --danger-color: #ef4444;
   --success-color: #10b981;
   --input-bg: #ffffff;
-  --input-border: #d1d5db;
+  --input-border: #cbd5e1;
   --header-bg: transparent;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
 }
 
 :root.dark {
-  --primary-color: #3b82f6;
-  --primary-hover: #60a5fa;
-  --bg-color: #0f172a;
-  /* Darker, richer blue-gray */
-  --text-color: #f8fafc;
+  /* Modern Dark Blue-Gray Palette */
+  --primary-color: #60a5fa;
+  --primary-hover: #93c5fd;
+  --bg-color: #0a0e1a;
+  /* Deep dark blue-black for main background */
+  --text-color: #e8edf5;
+  /* Soft white with slight blue tint */
   --text-muted: #94a3b8;
-  --card-bg: #1e293b;
-  /* Slightly lighter than bg */
-  --border-color: #334155;
+  /* Muted slate for secondary text */
+  --card-bg: #151b2e;
+  /* Rich dark blue-gray for cards */
+  --border-color: #1e2841;
+  /* Subtle borders */
   --danger-color: #f87171;
-  --success-color: #34d399;
-  --input-bg: #0f172a;
-  --input-border: #334155;
-  --header-bg: #0f172a;
+  /* Softer red for dark mode */
+  --success-color: #4ade80;
+  /* Bright green for visibility */
+  --input-bg: #0f1420;
+  /* Slightly darker than cards */
+  --input-border: #1e2841;
+  --header-bg: #0a0e1a;
+  /* Match main bg */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
 }
 
 /* ... existing code ... */
@@ -45,18 +60,18 @@
 }
 
 :root.dark .excel-table-wrapper {
-  background-color: #1e293b;
-  border-color: #334155;
+  background-color: #151b2e;
+  border-color: #1e2841;
 }
 
 :root.dark .upload-wrapper {
-  background-color: rgba(30, 41, 59, 0.5);
-  border-color: #334155;
+  background-color: rgba(15, 20, 32, 0.5);
+  border-color: #1e2841;
 }
 
 :root.dark .card-row {
-  background-color: #334155;
-  color: #e2e8f0;
+  background-color: #1e2841;
+  color: #e8edf5;
 }
 
 :root.dark .success-box,
@@ -99,8 +114,30 @@ h6 {
   color: var(--text-color);
 }
 
+p,
+span,
+label,
+div {
+  color: var(--text-color);
+}
+
+input,
+textarea,
+select {
+  background-color: var(--input-bg);
+  color: var(--text-color);
+  border: 1px solid var(--input-border);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
 button {
   font-family: inherit;
+  color: inherit;
 }
 
 .btn {
@@ -147,7 +184,13 @@ button {
 .card {
   background: var(--card-bg);
   border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+  transition: all 0.3s ease;
+}
+
+:root.dark .card {
+  box-shadow: var(--shadow-md);
 }
 
 input[type="range"] {
@@ -157,10 +200,12 @@ input[type="range"] {
   border-radius: 5px;
   outline: none;
   -webkit-appearance: none;
+  appearance: none;
 }
 
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
+  appearance: none;
   width: 20px;
   height: 20px;
   background: var(--primary-color);
@@ -188,47 +233,47 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 
 :root.dark .excel-table th {
-  background-color: #374151;
+  background-color: #1e2841;
   color: var(--text-color);
-  border-bottom-color: #4b5563;
+  border-bottom-color: #2d3a52;
 }
 
 :root.dark .excel-table td {
-  border-bottom-color: #374151;
+  border-bottom-color: #1e2841;
 }
 
 :root.dark .excel-table-wrapper {
-  background-color: #1f2937;
-  border-color: #374151;
+  background-color: #151b2e;
+  border-color: #1e2841;
 }
 
 :root.dark .upload-wrapper {
-  background-color: rgba(55, 65, 81, 0.5);
-  border-color: #4b5563;
+  background-color: rgba(15, 20, 32, 0.5);
+  border-color: #1e2841;
 }
 
 :root.dark .upload-wrapper:hover {
-  background-color: rgba(59, 130, 246, 0.1);
+  background-color: rgba(96, 165, 250, 0.1);
   border-color: var(--primary-color);
 }
 
 :root.dark .card-row {
-  background-color: #374151;
-  color: #d1d5db;
+  background-color: #1e2841;
+  color: #e8edf5;
 }
 
 :root.dark .row-pass {
-  color: #f3f4f6;
+  color: #e8edf5;
 }
 
 :root.dark .action-icon {
-  background-color: #374151;
-  border-color: #4b5563;
-  color: #d1d5db;
+  background-color: #1e2841;
+  border-color: #2d3a52;
+  color: #94a3b8;
 }
 
 :root.dark .action-icon:hover {
-  background-color: #1f2937;
+  background-color: #0f1420;
   border-color: var(--primary-color);
   color: var(--primary-color);
 }

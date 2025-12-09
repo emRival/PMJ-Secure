@@ -111,7 +111,7 @@
         position: fixed;
         bottom: 2rem;
         right: 2rem;
-        background: white;
+        background: var(--card-bg);
         padding: 0.75rem 1.25rem;
         border-radius: 999px;
         box-shadow:

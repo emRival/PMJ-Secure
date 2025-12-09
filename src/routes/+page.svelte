@@ -1472,7 +1472,7 @@
     }
 
     .feature-card {
-        background: white;
+        background: var(--card-bg);
         padding: 2rem;
         border-radius: 16px;
         border: 1px solid var(--border-color);
@@ -1514,7 +1514,7 @@
     }
 
     .generator-card {
-        background: white;
+        background: var(--card-bg);
         padding: 3rem;
         border-radius: 16px;
         box-shadow:
@@ -1566,7 +1566,7 @@
     }
 
     .action-btn {
-        background: white;
+        background: var(--card-bg);
         border: 1px solid var(--border-color);
         border-radius: 8px;
         padding: 0.8rem;
@@ -1652,7 +1652,7 @@
         align-items: center;
         justify-content: center;
         padding: 1.2rem;
-        background: white;
+        background: var(--card-bg);
         border: 2px solid var(--border-color);
         border-radius: 12px;
         cursor: pointer;
@@ -1704,7 +1704,7 @@
     }
 
     .section-header {
-        background: white;
+        background: var(--card-bg);
         border-radius: 12px;
         border: 1px solid var(--border-color);
         margin-bottom: 1.5rem;
@@ -1761,7 +1761,7 @@
         position: fixed;
         bottom: 2rem;
         right: 2rem;
-        background: white;
+        background: var(--card-bg);
         padding: 0.75rem 1.25rem;
         border-radius: 999px;
         box-shadow:
@@ -1832,7 +1832,7 @@
     }
 
     .history-card {
-        background: white;
+        background: var(--card-bg);
         border-radius: 12px;
         border: 1px solid var(--border-color);
         padding: 1.2rem;
@@ -1845,7 +1845,7 @@
     }
 
     .modal-card {
-        background: white;
+        background: var(--card-bg);
         border-radius: 16px;
         width: 90%;
         max-width: 400px;
@@ -1962,7 +1962,7 @@
     }
 
     .action-icon {
-        background: white;
+        background: var(--card-bg);
         border: 1px solid #e5e7eb;
         border-radius: 6px;
         width: 32px;
@@ -2083,7 +2083,7 @@
     }
 
     .modal {
-        background: #ffffff; /* Explicitly white */
+        background: var(--card-bg);
         border-radius: 16px;
         width: 90%;
         max-width: 400px;
@@ -2379,7 +2379,7 @@
     }
 
     .btn-cancel {
-        background: white;
+        background: var(--card-bg);
         border: 1px solid #d1d5db;
         color: #374151;
     }
@@ -2608,7 +2608,7 @@
         overflow-x: auto;
         border: 1px solid var(--border-color);
         border-radius: 8px;
-        background: white;
+        background: var(--card-bg);
         margin-bottom: 1rem;
     }
 

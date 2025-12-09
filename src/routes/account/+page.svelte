@@ -240,7 +240,7 @@
     }
 
     .card {
-        background: white;
+        background: var(--card-bg);
         border-radius: 12px;
         border: 1px solid #e5e7eb;
         overflow: hidden;
@@ -386,7 +386,7 @@
     }
 
     .qr-code {
-        background: white;
+        background: var(--card-bg);
         padding: 1rem;
         border-radius: 8px;
         border: 1px solid #e5e7eb;
