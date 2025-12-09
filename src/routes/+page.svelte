@@ -306,6 +306,12 @@
         requireVerification({ type: "show", itemId: id });
     }
 
+    function copyGeneratedPassword(text) {
+        navigator.clipboard.writeText(text);
+        copySuccess = true;
+        setTimeout(() => (copySuccess = false), 2000);
+    }
+
     function copyToClipboard(text) {
         requireVerification({ type: "copy", text });
     }
@@ -664,7 +670,7 @@
             <div class="display-wrapper">
                 <div
                     class="password-display-container"
-                    on:click={() => copyToClipboard(generatedPassword)}
+                    on:click={() => copyGeneratedPassword(generatedPassword)}
                     title="Click to Copy"
                 >
                     <div
