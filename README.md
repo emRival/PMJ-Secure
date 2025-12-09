@@ -44,6 +44,31 @@ To update the application to the latest version on your server (LXC/Docker), fol
     docker-compose logs -f
     ```
 
+## 📖 User Guide & Key Workflows
+
+### 1. Smart Password Generation
+On the main dashboard, you can generate strong random passwords instantly.
+-   **Customization**: Adjust length (up to 64 chars) and include/exclude Uppercase, Lowercase, Numbers, and Symbols.
+-   **One-Click Copy**: Click the generated password card to copy it immediately. No verification needed for newly generated passwords.
+
+### 2. The Secure Vault
+Save your important credentials to your personal encrypted vault.
+-   **Organization**: specific titles and usernames for each entry.
+-   **Privacy**: Passwords are hidden (`••••••`) by default.
+-   **Search**: Real-time filtering to find credentials quickly.
+
+### 3. Identity Verification ("Sudo Mode")
+To protect your most sensitive data, PMJ Secure implements a smart verification system.
+-   **Trigger**: When you try to **View**, **Edit**, or **Copy** a saved password from the vault, you will be asked to re-enter your login password.
+-   **10-Minute Session**: Once verified, you enter a "Unlock Mode" for 10 minutes.
+-   **Global Floating Timer**: A floating timer (e.g., `🔓 9:45`) appears at the bottom-right of your screen, letting you know how much time you have left.
+-   **Persistence**: You can refresh the page or navigate away, and your unlock session will remain active until the timer runs out.
+-   **Auto-Lock**: When the timer hits 0, or if you click **Sign Out**, the vault automatically locks again.
+
+### 4. Encrypted Backups
+-   **PDF Export**: Download a printable backup of your vault. **Crucially, this PDF is encrypted** with your login password. You cannot open it without the password.
+-   **Excel Import/Export**: Easily migrate your data in bulk.
+
 ## 🏗️ Architecture & Technology Stack
 
 PMJ Secure is built with performance, security, and simplicity in mind. We chose a modern stack that delivers a lightning-fast user experience while maintaining robust security standards.
