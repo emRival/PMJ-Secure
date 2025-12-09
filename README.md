@@ -65,9 +65,17 @@ To protect your most sensitive data, PMJ Secure implements a smart verification 
 -   **Persistence**: You can refresh the page or navigate away, and your unlock session will remain active until the timer runs out.
 -   **Auto-Lock**: When the timer hits 0, or if you click **Sign Out**, the vault automatically locks again.
 
-### 4. Encrypted Backups
--   **PDF Export**: Download a printable backup of your vault. **Crucially, this PDF is encrypted** with your login password. You cannot open it without the password.
--   **Excel Import/Export**: Easily migrate your data in bulk.
+### 4. Encrypted PDF Backups
+PMJ Secure provides **true PDF encryption** using server-side generation with PDFKit.
+
+-   **How It Works**:
+    1. Click "Export PDF" and enter your login password
+    2. Server generates a PDF with all your vault passwords
+    3. PDF is encrypted using **128-bit RC4 encryption** with your password
+    4. Encrypted PDF is downloaded to your device
+-   **Security**: The exported PDF file **cannot be opened** without your exact password. Even if someone steals the file, they cannot view its contents.
+-   **Permissions**: The PDF is read-only with printing and copying allowed, but modification is disabled.
+-   **Excel Import/Export**: Easily migrate your data in bulk for batch password operations.
 
 ## 🏗️ Architecture & Technology Stack
 
@@ -93,7 +101,11 @@ PMJ Secure is built with performance, security, and simplicity in mind. We chose
 ### Frontend & UI
 -   **Vanilla CSS**: No heavy CSS frameworks (like Bootstrap or Tailwind). We use modern CSS variables and Flexbox/Grid for a custom, lightweight, and easily maintainable design system.
 -   **Dark Mode**: Native CSS variables implementation with local storage persistence.
--   **`jspdf` & `xlsx`**: Client-side libraries for handling PDF and Excel files ensuring data stays local.
+-   **`xlsx`**: Client-side library for Excel import/export functionality.
+
+### PDF Generation
+-   **`pdfkit`**: Server-side PDF generation with native encryption support (128-bit RC4).
+-   **Security First**: PDFs are generated and encrypted on the server to ensure proper password protection that cannot be bypassed.
 
 ## 🛡️ Security Architecture
 
@@ -101,7 +113,7 @@ We take security seriously. Here is how we protect your data:
 
 1.  **Two-Factor Authentication (2FA)**: Adds a critical second layer of defense. Even if your password is stolen, an attacker cannot access your account without your physical device. We also support **Emergency Password Reset** via 2FA.
 2.  **Sudo Mode**: Sensitive actions (viewing, editing, or copying passwords) require you to re-enter your master password. This session stays active for 10 minutes, balancing security with convenience.
-3.  **Encrypted Exports**: When you export your vault to PDF, the file is encrypted with AES-128 encryption using your master password. Even if someone steals the file, they cannot open it.
+3.  **Military-Grade PDF Encryption**: When you export your vault to PDF, the document is generated server-side and encrypted with **128-bit RC4 encryption** using your master password. The PDF cannot be opened without the exact password, even if the file is intercepted or stolen.
 4.  **Local-First Design**: Your data lives on your server (or local machine), not in a third-party cloud. You own your data completely.
 
 ## 🚀 Getting Started (Local Development)

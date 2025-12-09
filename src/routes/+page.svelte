@@ -1,6 +1,6 @@
 <script>
     import { invalidateAll } from "$app/navigation";
-    import jsPDF from "jspdf";
+    import { jsPDF } from "jspdf";
     import autoTable from "jspdf-autotable";
     import { fade, slide, scale } from "svelte/transition";
     import { quintOut } from "svelte/easing";
@@ -415,48 +415,29 @@
     }
 
     async function generatePDF(password) {
-        const response = await fetch("/api/export");
-        const passwords = await response.json();
-
-        const doc = new jsPDF();
-
-        doc.setProperties({
-            title: "My Passwords",
-            author: "PMJ Secure",
-        });
-
         try {
-            doc.setEncryption(
-                new jsPDF().enc.makeHash(password),
-                password,
-                ["print", "copy"],
-                "aes-128",
-            );
+            const response = await fetch("/api/export-pdf", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ password }),
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed to generate PDF");
+            }
+
+            // Download the PDF
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = "my-passwords.pdf";
+            link.click();
+            URL.revokeObjectURL(url);
         } catch (e) {
-            console.warn("Encryption failed", e);
+            alert("PDF generation failed: " + e.message);
+            console.error(e);
         }
-
-        doc.setFontSize(18);
-        doc.text("My Password Vault", 14, 22);
-        doc.setFontSize(11);
-        doc.text(`Generated on ${new Date().toLocaleDateString()}`, 14, 30);
-
-        const tableData = passwords.map((p) => [
-            p.title,
-            p.username || "-",
-            p.password,
-            new Date(p.updated_at).toLocaleDateString(),
-        ]);
-
-        autoTable(doc, {
-            head: [["Title", "Username", "Password", "Last Updated"]],
-            body: tableData,
-            startY: 40,
-            theme: "grid",
-            headStyles: { fillColor: [37, 99, 235] },
-        });
-
-        doc.save("my-passwords.pdf");
     }
 
     function formatDate(dateString) {
