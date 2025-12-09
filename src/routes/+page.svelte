@@ -1343,20 +1343,7 @@
 </div>
 
 <style>
-    /* ... Previous styles remain ... */
-    /* Re-including all previous styles plus new modal styles */
-
-    :root {
-        --primary-color: #2563eb;
-        --primary-hover: #1d4ed8;
-        --bg-color: #f3f4f6;
-        --text-color: #1f2937;
-        --text-muted: #6b7280;
-        --card-bg: #ffffff;
-        --border-color: #e5e7eb;
-        --danger-color: #ef4444;
-        --success-color: #10b981;
-    }
+    /* Component-specific styles */
 
     .container {
         max-width: 1000px;
@@ -1423,7 +1410,7 @@
     .hero-content h2 {
         font-size: 2rem;
         margin-bottom: 1rem;
-        color: #111827;
+        color: var(--text-color);
     }
 
     .hero-content p {
@@ -1452,7 +1439,7 @@
     .landing-hero h2 {
         font-size: 2.5rem;
         margin-bottom: 1rem;
-        color: #111827;
+        color: var(--text-color);
         line-height: 1.2;
     }
 
@@ -1491,7 +1478,7 @@
 
     .feature-card h3 {
         margin: 0 0 0.5rem 0;
-        color: #111827;
+        color: var(--text-color);
     }
 
     .feature-card p {
@@ -1510,7 +1497,7 @@
     .cta-section h3 {
         font-size: 1.8rem;
         margin-bottom: 1.5rem;
-        color: #111827;
+        color: var(--text-color);
     }
 
     .generator-card {
@@ -1720,7 +1707,7 @@
     .section-header h2 {
         margin: 0;
         font-size: 1.25rem;
-        color: #111827;
+        color: var(--text-color);
         font-weight: 700;
     }
 
@@ -1877,7 +1864,7 @@
 
     .card-title {
         font-weight: 700;
-        color: #111827;
+        color: var(--text-color);
         font-size: 1.1rem;
     }
 
@@ -1937,7 +1924,7 @@
     .row-pass {
         font-family: "JetBrains Mono", monospace;
         font-weight: 600;
-        color: #1f2937;
+        color: var(--text-color);
         overflow: hidden;
         text-overflow: ellipsis;
     }
@@ -2164,7 +2151,7 @@
     .modal-header h3 {
         margin: 0;
         font-size: 1.2rem;
-        color: #111827;
+        color: var(--text-color);
     }
 
     .close-btn {
@@ -2347,7 +2334,7 @@
 
     .delete-text-content h3 {
         margin: 0 0 0.5rem 0;
-        color: #111827;
+        color: var(--text-color);
         font-size: 1.25rem;
         font-weight: 700;
     }
