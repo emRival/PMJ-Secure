@@ -230,7 +230,7 @@
 
     h1 {
         font-size: 1.8rem;
-        color: #111827;
+        color: var(--text-color);
         margin: 0;
     }
 
@@ -273,7 +273,7 @@
     .static-value {
         font-size: 1.1rem;
         font-weight: 500;
-        color: #111827;
+        color: var(--text-color);
         padding: 0.5rem 0;
     }
 

@@ -2227,7 +2227,7 @@
 
     .modal-actions {
         padding: 1.5rem;
-        background: #f9fafb;
+        background: var(--bg-color);
         border-top: 1px solid var(--border-color);
         display: flex;
         justify-content: flex-end;
