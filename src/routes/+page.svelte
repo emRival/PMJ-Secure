@@ -229,6 +229,38 @@
     let verifyError = "";
     let pendingAction = null; // { type: 'edit' | 'show' | 'copy', itemId: string, item: object }
     let verifiedSessionUntil = 0; // Timestamp when verification expires
+    let timeRemaining = 0; // Seconds remaining
+
+    import { onMount, onDestroy } from "svelte";
+
+    onMount(() => {
+        generatePassword();
+
+        // Restore verification state from localStorage
+        const storedVerify = localStorage.getItem("verifiedSessionUntil");
+        if (storedVerify) {
+            verifiedSessionUntil = parseInt(storedVerify, 10);
+            updateTimer();
+        }
+
+        // Start timer loop
+        const interval = setInterval(updateTimer, 1000);
+        return () => clearInterval(interval);
+    });
+
+    function updateTimer() {
+        const now = Date.now();
+        if (now < verifiedSessionUntil) {
+            timeRemaining = Math.floor((verifiedSessionUntil - now) / 1000);
+        } else {
+            timeRemaining = 0;
+            // Optionally clear storage if expired
+            if (verifiedSessionUntil > 0) {
+                localStorage.removeItem("verifiedSessionUntil");
+                verifiedSessionUntil = 0;
+            }
+        }
+    }
 
     function isSessionVerified() {
         return Date.now() < verifiedSessionUntil;
@@ -265,7 +297,14 @@
                 return;
             }
 
-            verifiedSessionUntil = Date.now() + 10 * 60 * 1000; // 10 minutes
+            // Set expiry to 10 minutes from now
+            verifiedSessionUntil = Date.now() + 10 * 60 * 1000;
+            localStorage.setItem(
+                "verifiedSessionUntil",
+                verifiedSessionUntil.toString(),
+            );
+            updateTimer();
+
             showVerifyModal = false;
             if (pendingAction) {
                 performAction(pendingAction);
@@ -559,11 +598,6 @@
         if (!processedWorkbook) return;
         XLSX.writeFile(processedWorkbook, "passwords_filled.xlsx");
     }
-
-    import { onMount } from "svelte";
-    onMount(() => {
-        generatePassword();
-    });
 </script>
 
 <div class="container">
@@ -601,7 +635,13 @@
                     <button class="btn btn-text" on:click={startExport}
                         >Export PDF</button
                     >
-                    <form action="/logout" method="POST">
+                    <form
+                        action="/logout"
+                        method="POST"
+                        on:submit={() => {
+                            localStorage.removeItem("verifiedSessionUntil");
+                        }}
+                    >
                         <button type="submit" class="btn btn-text"
                             >Sign Out</button
                         >
@@ -615,6 +655,17 @@
             {/if}
         </div>
     </header>
+
+    {#if timeRemaining > 0 && data.user}
+        <div class="floating-timer">
+            <span>🔓</span>
+            <span
+                >{Math.floor(timeRemaining / 60)}:{(timeRemaining % 60)
+                    .toString()
+                    .padStart(2, "0")}</span
+            >
+        </div>
+    {/if}
 
     <main>
         {#if !data.user}
@@ -1723,6 +1774,37 @@
         font-size: 0.9rem;
         color: #9ca3af;
         pointer-events: none;
+    }
+
+    .floating-timer {
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        background: white;
+        padding: 0.75rem 1.25rem;
+        border-radius: 999px;
+        box-shadow:
+            0 4px 6px -1px rgba(0, 0, 0, 0.1),
+            0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        border: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        z-index: 50;
+        font-weight: 500;
+        color: var(--primary-color);
+        animation: slideUp 0.3s ease-out;
+    }
+
+    @keyframes slideUp {
+        from {
+            transform: translateY(20px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
     }
 
     .search-input {
