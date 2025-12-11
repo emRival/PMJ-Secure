@@ -55,7 +55,7 @@ export class PasskeyAuth {
     /**
      * Verify and store passkey registration
      */
-    static async verifyRegistration(userId, response, expectedChallenge) {
+    static async verifyRegistration(userId, response, expectedChallenge, name = 'Passkey') {
         let verification;
         try {
             console.log('Verifying registration with:', {
@@ -97,9 +97,9 @@ export class PasskeyAuth {
 
             db.prepare(`
                 INSERT INTO passkey_credentials 
-                (id, user_id, credential_id, credential_public_key, counter)
-                VALUES (?, ?, ?, ?, ?)
-            `).run(id, userId, credentialIdBase64, publicKeyBase64, counter);
+                (id, user_id, name, credential_id, credential_public_key, counter)
+                VALUES (?, ?, ?, ?, ?, ?)
+            `).run(id, userId, name, credentialIdBase64, publicKeyBase64, counter);
 
             console.log('Passkey registered successfully for user:', userId);
             return { success: true, credentialId: credentialIdBase64 };

@@ -55,6 +55,7 @@ try {
     CREATE TABLE IF NOT EXISTS passkey_credentials (
       id TEXT PRIMARY KEY,
       user_id TEXT NOT NULL,
+      name TEXT DEFAULT 'Passkey',
       credential_id TEXT UNIQUE NOT NULL,
       credential_public_key TEXT NOT NULL,
       counter INTEGER NOT NULL DEFAULT 0,
@@ -66,6 +67,13 @@ try {
   `);
 } catch (e) {
   console.log('Passkey table migration:', e.message);
+}
+
+// Migration: Add name column to existing passkey_credentials
+try {
+  db.exec("ALTER TABLE passkey_credentials ADD COLUMN name TEXT DEFAULT 'Passkey'");
+} catch (e) {
+  // Column likely already exists
 }
 
 export default db;
