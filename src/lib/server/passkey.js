@@ -126,16 +126,38 @@ export class PasskeyAuth {
      * Verify passkey authentication
      */
     static async verifyAuthentication(response, expectedChallenge) {
+        // Try different credential ID formats
         const credentialIdBase64 = Buffer.from(response.id, 'base64url').toString('base64');
+        const credentialIdRaw = response.id;
 
-        // Find credential in database
-        const credential = db.prepare(
+        console.log('Looking for credential:', {
+            base64: credentialIdBase64,
+            base64url: credentialIdRaw,
+            rawId: response.rawId ? Buffer.from(response.rawId).toString('base64') : 'N/A'
+        });
+
+        // Find credential in database - try base64 first
+        let credential = db.prepare(
             'SELECT * FROM passkey_credentials WHERE credential_id = ?'
         ).get(credentialIdBase64);
 
+        // If not found, try with rawId
+        if (!credential && response.rawId) {
+            const rawIdBase64 = Buffer.from(response.rawId).toString('base64');
+            console.log('Trying rawId:', rawIdBase64);
+            credential = db.prepare(
+                'SELECT * FROM passkey_credentials WHERE credential_id = ?'
+            ).get(rawIdBase64);
+        }
+
         if (!credential) {
+            // List all credentials for debugging
+            const allCreds = db.prepare('SELECT credential_id, user_id FROM passkey_credentials').all();
+            console.error('Credential not found. Available credentials:', allCreds);
             throw new Error('Credential not found');
         }
+
+        console.log('Found credential for user:', credential.user_id);
 
         let verification;
         try {
