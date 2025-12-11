@@ -43,7 +43,7 @@ export class PasskeyAuth {
                 transports: ['usb', 'ble', 'nfc', 'internal']
             })),
             authenticatorSelection: {
-                residentKey: 'preferred',
+                residentKey: 'required', // Make credential discoverable
                 userVerification: 'preferred',
                 authenticatorAttachment: 'platform'
             }
@@ -112,26 +112,11 @@ export class PasskeyAuth {
      * Generate authentication options for passkey login
      */
     static async generateAuthenticationOptions(userId = null) {
-        let allowCredentials = [];
-
-        if (userId) {
-            // User-specific authentication
-            const credentials = db.prepare(
-                'SELECT credential_id FROM passkey_credentials WHERE user_id = ?'
-            ).all(userId);
-
-            allowCredentials = credentials.map(cred => ({
-                // Convert from base64 to base64url string
-                id: Buffer.from(cred.credential_id, 'base64').toString('base64url'),
-                type: 'public-key',
-                transports: ['usb', 'ble', 'nfc', 'internal']
-            }));
-        }
-
+        // Use usernameless/discoverable credentials flow
+        // Don't specify allowCredentials - let the browser find matching credentials
         const options = await generateAuthenticationOptions({
             rpID,
-            userVerification: 'preferred',
-            allowCredentials: allowCredentials.length > 0 ? allowCredentials : undefined
+            userVerification: 'preferred'
         });
 
         return options;
