@@ -7,36 +7,39 @@ export async function POST({ request }) {
     try {
         const { username } = await request.json();
 
-        console.log('Passkey auth requested for username:', username);
+        console.log('Passkey auth requested for username:', username || '(usernameless)');
 
-        // Get user first to check if they have passkeys
-        const db = (await import('$lib/server/db.js')).default;
-        const user = db.prepare('SELECT id FROM users WHERE username = ?').get(username);
+        let userId = null;
 
-        if (!user) {
-            console.error('User not found:', username);
-            // Don't reveal if user exists or not
-            return json({ error: 'Authentication failed' }, { status: 400 });
+        // If username provided, get user ID for better UX
+        if (username && username.trim()) {
+            const db = (await import('$lib/server/db.js')).default;
+            const user = db.prepare('SELECT id FROM users WHERE username = ?').get(username);
+
+            if (user) {
+                userId = user.id;
+                console.log('User found, ID:', user.id);
+
+                const passkeys = db.prepare('SELECT id FROM passkey_credentials WHERE user_id = ?').all(user.id);
+                console.log('User has', passkeys.length, 'passkey(s) registered');
+            } else {
+                console.error('User not found:', username);
+            }
         }
 
-        console.log('User found, ID:', user.id);
-
-        // Check if user has any passkeys
-        const passkeys = db.prepare('SELECT id FROM passkey_credentials WHERE user_id = ?').all(user.id);
-        console.log('User has', passkeys.length, 'passkey(s) registered');
-
-        // Generate authentication options
-        const options = await PasskeyAuth.generateAuthenticationOptions(user.id);
+        // Generate authentication options (works with or without userId)
+        const options = await PasskeyAuth.generateAuthenticationOptions(userId);
 
         console.log('Authentication options generated:', {
             allowCredentials: options.allowCredentials?.length || 0,
             challenge: options.challenge.substring(0, 20) + '...'
         });
 
-        // Store challenge for verification
-        storeChallenge(user.id, options.challenge);
+        // Store challenge - use a temporary ID if no userId
+        const challengeKey = userId || 'usernameless_' + Date.now();
+        storeChallenge(challengeKey, options.challenge);
 
-        return json({ ...options, userId: user.id });
+        return json({ ...options, userId: challengeKey });
     } catch (error) {
         console.error('Passkey authentication options error:', error);
         return json({ error: 'Failed to generate authentication options' }, { status: 500 });

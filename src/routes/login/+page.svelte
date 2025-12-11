@@ -12,20 +12,15 @@
     let username = "";
 
     async function loginWithPasskey() {
-        if (!username.trim()) {
-            passkeyError = "Please enter your username first";
-            return;
-        }
-
         passkeyLoading = true;
         passkeyError = "";
 
         try {
-            // Get authentication options from server
+            // Get authentication options - no username needed for discoverable credentials
             const optionsRes = await fetch("/api/passkey/auth-options", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ username }),
+                body: JSON.stringify({ username: username || "" }), // Send empty if no username
             });
 
             if (!optionsRes.ok) {
@@ -43,7 +38,7 @@
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     response: authResp,
-                    userId,
+                    userId: userId || null, // May be null for usernameless flow
                 }),
             });
 
@@ -57,7 +52,7 @@
             console.error("Passkey login error:", error);
             passkeyError =
                 error.message ||
-                "Failed to login with passkey. Make sure you have registered a passkey for this account.";
+                "Failed to login with passkey. Please try again or use password.";
         } finally {
             passkeyLoading = false;
         }
@@ -167,7 +162,7 @@
                 type="button"
                 class="btn-passkey"
                 on:click={loginWithPasskey}
-                disabled={passkeyLoading || !username.trim()}
+                disabled={passkeyLoading}
             >
                 {#if passkeyLoading}
                     ⏳ Authenticating...
