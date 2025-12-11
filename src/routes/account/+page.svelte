@@ -1,6 +1,8 @@
 <script>
     import { enhance } from "$app/forms";
     import { fade } from "svelte/transition";
+    import { onMount } from "svelte";
+    import { startRegistration } from "@simplewebauthn/browser";
 
     export let form;
     export let data;
@@ -8,6 +10,95 @@
     let showCurrent = false;
     let showNew = false;
     let showConfirm = false;
+
+    // Passkey states
+    let passkeys = [];
+    let registeringPasskey = false;
+    let passkeyError = "";
+    let passkeySuccess = "";
+
+    onMount(async () => {
+        await loadPasskeys();
+    });
+
+    async function loadPasskeys() {
+        try {
+            const res = await fetch("/api/passkey");
+            if (res.ok) {
+                passkeys = await res.json();
+            }
+        } catch (err) {
+            console.error("Failed to load passkeys:", err);
+        }
+    }
+
+    async function registerPasskey() {
+        registeringPasskey = true;
+        passkeyError = "";
+        passkeySuccess = "";
+
+        try {
+            // Get registration options from server
+            const optionsRes = await fetch("/api/passkey/register-options", {
+                method: "POST",
+            });
+
+            if (!optionsRes.ok) {
+                throw new Error("Failed to get registration options");
+            }
+
+            const options = await optionsRes.json();
+
+            // Start WebAuthn registration
+            const attResp = await startRegistration(options);
+
+            // Send response to server for verification
+            const verifyRes = await fetch("/api/passkey/register-verify", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ response: attResp }),
+            });
+
+            if (!verifyRes.ok) {
+                throw new Error("Failed to verify registration");
+            }
+
+            passkeySuccess =
+                "Passkey registered successfully! You can now login with biometrics.";
+            await loadPasskeys();
+        } catch (error) {
+            console.error("Passkey registration error:", error);
+            passkeyError =
+                error.message ||
+                "Failed to register passkey. Make sure your device supports biometrics.";
+        } finally {
+            registeringPasskey = false;
+        }
+    }
+
+    async function deletePasskey(passkeyId) {
+        if (!confirm("Are you sure you want to remove this passkey?")) {
+            return;
+        }
+
+        try {
+            const res = await fetch("/api/passkey", {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ passkeyId }),
+            });
+
+            if (res.ok) {
+                passkeySuccess = "Passkey removed successfully";
+                await loadPasskeys();
+            } else {
+                throw new Error("Failed to delete passkey");
+            }
+        } catch (error) {
+            console.error("Delete passkey error:", error);
+            passkeyError = "Failed to remove passkey";
+        }
+    }
 </script>
 
 <div class="container">
@@ -196,6 +287,78 @@
                         {form.message}
                     </div>
                 {/if}
+            </div>
+        </div>
+
+        <!-- Passkey / Biometric Authentication Card -->
+        <div class="card passkey-card">
+            <div class="card-header">
+                <h2>🔐 Passkey / Biometric Login</h2>
+            </div>
+            <div class="card-body">
+                <div class="status-disabled">
+                    <p>
+                        Enable passwordless login using your device's biometrics
+                        (fingerprint, Face ID, Windows Hello) or security keys.
+                        Passkeys are more secure and convenient than traditional
+                        passwords.
+                    </p>
+                </div>
+
+                {#if passkeyError}
+                    <div class="alert error" transition:fade>
+                        {passkeyError}
+                    </div>
+                {/if}
+
+                {#if passkeySuccess}
+                    <div class="alert success" transition:fade>
+                        {passkeySuccess}
+                    </div>
+                {/if}
+
+                {#if passkeys.length > 0}
+                    <div class="passkey-list">
+                        <h3>Registered Passkeys</h3>
+                        {#each passkeys as passkey}
+                            <div class="passkey-item">
+                                <div class="passkey-info">
+                                    <div class="passkey-icon">🔑</div>
+                                    <div>
+                                        <div class="passkey-label">Passkey</div>
+                                        <div class="passkey-date">
+                                            Added: {new Date(
+                                                passkey.created_at,
+                                            ).toLocaleDateString()}
+                                            {#if passkey.last_used_at}
+                                                · Last used: {new Date(
+                                                    passkey.last_used_at,
+                                                ).toLocaleDateString()}
+                                            {/if}
+                                        </div>
+                                    </div>
+                                </div>
+                                <button
+                                    class="btn-delete-passkey"
+                                    on:click={() => deletePasskey(passkey.id)}
+                                    title="Remove this passkey"
+                                >
+                                    🗑️
+                                </button>
+                            </div>
+                        {/each}
+                    </div>
+                {/if}
+
+                <button
+                    class="btn btn-primary"
+                    on:click={registerPasskey}
+                    disabled={registeringPasskey}
+                >
+                    {registeringPasskey
+                        ? "⏳ Please use your biometric..."
+                        : "➕ Add Passkey / Biometric"}
+                </button>
             </div>
         </div>
     </div>
@@ -457,6 +620,64 @@
         text-align: center;
         letter-spacing: 0.2rem;
         font-size: 1.5rem;
+    }
+
+    /* Passkey Styles */
+    .passkey-list {
+        margin: 1.5rem 0;
+    }
+
+    .passkey-list h3 {
+        font-size: 0.95rem;
+        color: var(--text-muted);
+        margin-bottom: 1rem;
+    }
+
+    .passkey-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+        background: var(--bg-color);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        margin-bottom: 0.75rem;
+    }
+
+    .passkey-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .passkey-icon {
+        font-size: 1.5rem;
+    }
+
+    .passkey-label {
+        font-weight: 600;
+        color: var(--text-color);
+        margin-bottom: 0.25rem;
+    }
+
+    .passkey-date {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+    }
+
+    .btn-delete-passkey {
+        background: transparent;
+        border: none;
+        font-size: 1.2rem;
+        cursor: pointer;
+        padding: 0.5rem;
+        opacity: 0.6;
+        transition: all 0.2s;
+    }
+
+    .btn-delete-passkey:hover {
+        opacity: 1;
+        transform: scale(1.1);
     }
 
     /* Dark Mode Overrides for Account Page */
