@@ -1,8 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { PasskeyAuth } from '$lib/server/passkey.js';
-
-// Store challenges temporarily (in production, use Redis or similar)
-const challenges = new Map();
+import { storeChallenge } from '$lib/server/challenge-store.js';
 
 /** @type {import('./$types').RequestHandler} */
 export async function POST({ request, locals }) {
@@ -16,13 +14,10 @@ export async function POST({ request, locals }) {
             locals.user.username
         );
 
-        // Store challenge for verification
-        challenges.set(locals.user.id, options.challenge);
+        // Store challenge for verification using shared store
+        storeChallenge(locals.user.id, options.challenge);
 
-        // Clear old challenges after 5 minutes
-        setTimeout(() => {
-            challenges.delete(locals.user.id);
-        }, 5 * 60 * 1000);
+        console.log('Registration options generated, challenge stored for user:', locals.user.id);
 
         return json(options);
     } catch (error) {

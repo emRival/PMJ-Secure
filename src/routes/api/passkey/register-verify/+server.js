@@ -1,8 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { PasskeyAuth } from '$lib/server/passkey.js';
-
-// Import challenges map from register-options (in production use shared store)
-const challenges = new Map();
+import { getChallenge, deleteChallenge } from '$lib/server/challenge-store.js';
 
 /** @type {import('./$types').RequestHandler} */
 export async function POST({ request, locals }) {
@@ -12,11 +10,14 @@ export async function POST({ request, locals }) {
 
     try {
         const { response } = await request.json();
-        const expectedChallenge = challenges.get(locals.user.id);
+        const expectedChallenge = getChallenge(locals.user.id);
 
         if (!expectedChallenge) {
+            console.error('Challenge not found for user:', locals.user.id);
             return json({ error: 'Challenge not found or expired' }, { status: 400 });
         }
+
+        console.log('Verifying passkey registration for user:', locals.user.id);
 
         const result = await PasskeyAuth.verifyRegistration(
             locals.user.id,
@@ -25,7 +26,7 @@ export async function POST({ request, locals }) {
         );
 
         // Clear challenge after use
-        challenges.delete(locals.user.id);
+        deleteChallenge(locals.user.id);
 
         if (result.success) {
             return json({ success: true, message: 'Passkey registered successfully' });
