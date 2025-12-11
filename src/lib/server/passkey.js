@@ -8,8 +8,10 @@ import { v4 as uuidv4 } from 'uuid';
 import db from './db.js';
 
 const rpName = 'PMJ Secure';
+// For localhost, rpID must be 'localhost' without port
 const rpID = process.env.RP_ID || 'localhost';
-const origin = process.env.ORIGIN || `http://${rpID}:5173`;
+// Origin includes protocol and port for localhost
+const origin = process.env.ORIGIN || 'http://localhost:5173';
 
 export class PasskeyAuth {
     /**
@@ -56,6 +58,12 @@ export class PasskeyAuth {
     static async verifyRegistration(userId, response, expectedChallenge) {
         let verification;
         try {
+            console.log('Verifying registration with:', {
+                origin,
+                rpID,
+                expectedChallenge: expectedChallenge.substring(0, 20) + '...'
+            });
+
             verification = await verifyRegistrationResponse({
                 response,
                 expectedChallenge,
@@ -65,7 +73,12 @@ export class PasskeyAuth {
             });
         } catch (error) {
             console.error('Registration verification failed:', error);
-            throw new Error('Failed to verify registration');
+            console.error('Error details:', {
+                message: error.message,
+                origin,
+                rpID
+            });
+            throw new Error(`Failed to verify registration: ${error.message}`);
         }
 
         const { verified, registrationInfo } = verification;
@@ -88,6 +101,7 @@ export class PasskeyAuth {
                 VALUES (?, ?, ?, ?, ?)
             `).run(id, userId, credentialIdBase64, publicKeyBase64, counter);
 
+            console.log('Passkey registered successfully for user:', userId);
             return { success: true, credentialId: credentialIdBase64 };
         }
 
