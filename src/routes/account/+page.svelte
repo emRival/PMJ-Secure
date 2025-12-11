@@ -371,49 +371,64 @@
                     </div>
                 {/if}
 
-                {#if showNameInput}
-                    <div class="passkey-name-input">
-                        <label for="passkeyName">Name this passkey</label>
-                        <input
-                            type="text"
-                            id="passkeyName"
-                            bind:value={passkeyName}
-                            placeholder="e.g., iPhone 13 Pro, MacBook Pro"
-                            maxlength="50"
-                            on:keydown={(e) =>
-                                e.key === "Enter" && registerPasskey()}
-                        />
-                        <div class="button-group">
-                            <button
-                                class="btn btn-secondary"
-                                on:click={() => (showNameInput = false)}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                class="btn btn-primary"
-                                on:click={registerPasskey}
-                                disabled={registeringPasskey}
-                            >
-                                {registeringPasskey
-                                    ? "⏳ Please use your biometric..."
-                                    : "Continue"}
-                            </button>
-                        </div>
-                    </div>
-                {:else}
-                    <button
-                        class="btn btn-primary"
-                        on:click={startPasskeyRegistration}
-                        disabled={registeringPasskey}
-                    >
-                        ➕ Add Passkey / Biometric
-                    </button>
-                {/if}
+                <button
+                    class="btn btn-primary"
+                    on:click={startPasskeyRegistration}
+                    disabled={registeringPasskey}
+                >
+                    ➕ Add Passkey / Biometric
+                </button>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Passkey Name Modal -->
+{#if showNameInput}
+    <div class="modal-overlay" on:click={() => (showNameInput = false)}>
+        <div class="modal" on:click|stopPropagation>
+            <div class="modal-header">
+                <h3>Name Your Passkey</h3>
+            </div>
+            <div class="modal-body">
+                <p class="modal-description">
+                    Give this passkey a memorable name to identify which device
+                    you're using.
+                </p>
+                <div class="form-group">
+                    <label for="passkeyNameModal">Passkey Name</label>
+                    <input
+                        type="text"
+                        id="passkeyNameModal"
+                        bind:value={passkeyName}
+                        placeholder="e.g., iPhone 13 Pro, MacBook Air"
+                        maxlength="50"
+                        on:keydown={(e) =>
+                            e.key === "Enter" && registerPasskey()}
+                        autofocus
+                    />
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button
+                    class="btn btn-secondary"
+                    on:click={() => (showNameInput = false)}
+                >
+                    Cancel
+                </button>
+                <button
+                    class="btn btn-primary"
+                    on:click={registerPasskey}
+                    disabled={registeringPasskey || !passkeyName.trim()}
+                >
+                    {registeringPasskey
+                        ? "⏳ Activating biometric..."
+                        : "Continue"}
+                </button>
+            </div>
+        </div>
+    </div>
+{/if}
 
 <style>
     .container {
@@ -744,5 +759,67 @@
     }
     :global(.dark) .status-enabled p {
         color: #34d399;
+    }
+
+    /* Modal Styles */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(8px);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    }
+
+    .modal {
+        background: var(--card-bg);
+        border-radius: 16px;
+        width: 90%;
+        max-width: 450px;
+        box-shadow:
+            0 20px 25px -5px rgba(0, 0, 0, 0.3),
+            0 10px 10px -5px rgba(0, 0, 0, 0.15);
+        overflow: hidden;
+    }
+
+    .modal-header {
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .modal-header h3 {
+        margin: 0;
+        font-size: 1.25rem;
+        color: var(--text-color);
+    }
+
+    .modal-body {
+        padding: 1.5rem;
+    }
+
+    .modal-description {
+        color: var(--text-muted);
+        font-size: 0.95rem;
+        margin-bottom: 1.5rem;
+        line-height: 1.6;
+    }
+
+    .modal-actions {
+        padding: 1rem 1.5rem;
+        background: var(--bg-color);
+        border-top: 1px solid var(--border-color);
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+    }
+
+    .modal-actions .btn {
+        padding: 0.625rem 1.25rem;
+        font-size: 0.9rem;
     }
 </style>
