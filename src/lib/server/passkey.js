@@ -45,7 +45,8 @@ export class PasskeyAuth {
             authenticatorSelection: {
                 residentKey: 'required', // Make credential discoverable
                 userVerification: 'preferred',
-                authenticatorAttachment: 'platform'
+                // Don't specify authenticatorAttachment - let device decide
+                // This allows both platform (built-in) and cross-platform (USB keys)
             }
         });
 

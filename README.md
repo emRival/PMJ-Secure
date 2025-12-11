@@ -4,6 +4,20 @@ PMJ Secure is a modern, secure, and open-source password generator and manager b
 
 ![PMJ Secure Preview](/static/og-image.png)
 
+## 📑 Table of Contents
+
+- [Quick Install (Docker)](#-quick-install-docker) ⭐ **Start Here!**
+- [Features](#-features)
+- [How to Update](#-how-to-update)
+- [User Guide](#-user-guide--key-workflows)
+  - [Passkey Authentication](#5--passkey--biometric-authentication-webauthn)
+  - [Identity Verification](#3-identity-verification-sudo-mode)
+- [Docker Deployment (Full Guide)](#-docker-deployment-production)
+- [Architecture](#️-architecture--technology-stack)
+- [Security](#️-security-architecture)
+
+---
+
 ## ✨ Features
 
 -   **Strong Password Generation**: Customizable length, character sets (uppercase, lowercase, numbers, symbols).
@@ -23,6 +37,36 @@ PMJ Secure is a modern, secure, and open-source password generator and manager b
 -   **Privacy Focused**: Passwords are hidden by default with toggle visibility.
 -   **Responsive Design**: Works perfectly on desktop and mobile.
 -   **Docker Ready**: Easy deployment with Docker and Docker Compose.
+
+## 🚀 Quick Install (Docker)
+
+**TL;DR - 3 Commands to Deploy:**
+
+```bash
+# 1. Clone repository
+git clone https://github.com/emRival/PMJ-Secure.git && cd PMJ-Secure
+
+# 2. Configure for your domain (replace with your actual domain)
+cat > .env << 'EOF'
+RP_ID=yourdomain.com
+ORIGIN=https://secure.yourdomain.com
+EOF
+
+# 3. Run!
+docker-compose up -d --build
+```
+
+**That's it!** App runs on port `3009`. 
+
+**Next Steps:**
+- Setup Nginx Proxy Manager → Point to `your-server-ip:3009`
+- Enable SSL with Let's Encrypt
+- Access `https://secure.yourdomain.com`
+- Register account and start using!
+
+*For detailed guide, see [Full Documentation](#-docker-deployment-production) below.*
+
+---
 
 ## 🔄 How to Update
 
