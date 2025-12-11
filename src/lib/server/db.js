@@ -49,4 +49,23 @@ try {
   db.exec("ALTER TABLE users ADD COLUMN two_factor_enabled INTEGER DEFAULT 0");
 } catch (e) { }
 
+// Migration: Add passkey credentials table
+try {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS passkey_credentials (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      credential_id TEXT UNIQUE NOT NULL,
+      credential_public_key TEXT NOT NULL,
+      counter INTEGER NOT NULL DEFAULT 0,
+      transports TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      last_used_at DATETIME,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+} catch (e) {
+  console.log('Passkey table migration:', e.message);
+}
+
 export default db;
