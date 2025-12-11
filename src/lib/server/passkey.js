@@ -191,7 +191,7 @@ export class PasskeyAuth {
      */
     static getUserPasskeys(userId) {
         return db.prepare(`
-            SELECT id, created_at, last_used_at 
+            SELECT id, name, created_at, last_used_at 
             FROM passkey_credentials 
             WHERE user_id = ?
             ORDER BY created_at DESC

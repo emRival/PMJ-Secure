@@ -9,7 +9,7 @@ export async function POST({ request, locals }) {
     }
 
     try {
-        const { response } = await request.json();
+        const { response, name } = await request.json();
         const expectedChallenge = getChallenge(locals.user.id);
 
         if (!expectedChallenge) {
@@ -22,7 +22,8 @@ export async function POST({ request, locals }) {
         const result = await PasskeyAuth.verifyRegistration(
             locals.user.id,
             response,
-            expectedChallenge
+            expectedChallenge,
+            name || 'Passkey'
         );
 
         // Clear challenge after use

@@ -16,6 +16,8 @@
     let registeringPasskey = false;
     let passkeyError = "";
     let passkeySuccess = "";
+    let passkeyName = "";
+    let showNameInput = false;
 
     onMount(async () => {
         await loadPasskeys();
@@ -32,10 +34,23 @@
         }
     }
 
+    function startPasskeyRegistration() {
+        passkeyName = "";
+        showNameInput = true;
+        passkeyError = "";
+        passkeySuccess = "";
+    }
+
     async function registerPasskey() {
+        if (!passkeyName.trim()) {
+            passkeyError = "Please enter a name for this passkey";
+            return;
+        }
+
         registeringPasskey = true;
         passkeyError = "";
         passkeySuccess = "";
+        showNameInput = false;
 
         try {
             // Get registration options from server
@@ -56,21 +71,25 @@
             const verifyRes = await fetch("/api/passkey/register-verify", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ response: attResp }),
+                body: JSON.stringify({
+                    response: attResp,
+                    name: passkeyName,
+                }),
             });
 
             if (!verifyRes.ok) {
                 throw new Error("Failed to verify registration");
             }
 
-            passkeySuccess =
-                "Passkey registered successfully! You can now login with biometrics.";
+            passkeySuccess = `Passkey "${passkeyName}" registered successfully! You can now login with biometrics.`;
+            passkeyName = "";
             await loadPasskeys();
         } catch (error) {
             console.error("Passkey registration error:", error);
             passkeyError =
                 error.message ||
                 "Failed to register passkey. Make sure your device supports biometrics.";
+            showNameInput = true;
         } finally {
             registeringPasskey = false;
         }
@@ -325,7 +344,9 @@
                                 <div class="passkey-info">
                                     <div class="passkey-icon">🔑</div>
                                     <div>
-                                        <div class="passkey-label">Passkey</div>
+                                        <div class="passkey-label">
+                                            {passkey.name || "Passkey"}
+                                        </div>
                                         <div class="passkey-date">
                                             Added: {new Date(
                                                 passkey.created_at,
@@ -350,15 +371,45 @@
                     </div>
                 {/if}
 
-                <button
-                    class="btn btn-primary"
-                    on:click={registerPasskey}
-                    disabled={registeringPasskey}
-                >
-                    {registeringPasskey
-                        ? "⏳ Please use your biometric..."
-                        : "➕ Add Passkey / Biometric"}
-                </button>
+                {#if showNameInput}
+                    <div class="passkey-name-input">
+                        <label for="passkeyName">Name this passkey</label>
+                        <input
+                            type="text"
+                            id="passkeyName"
+                            bind:value={passkeyName}
+                            placeholder="e.g., iPhone 13 Pro, MacBook Pro"
+                            maxlength="50"
+                            on:keydown={(e) =>
+                                e.key === "Enter" && registerPasskey()}
+                        />
+                        <div class="button-group">
+                            <button
+                                class="btn btn-secondary"
+                                on:click={() => (showNameInput = false)}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                class="btn btn-primary"
+                                on:click={registerPasskey}
+                                disabled={registeringPasskey}
+                            >
+                                {registeringPasskey
+                                    ? "⏳ Please use your biometric..."
+                                    : "Continue"}
+                            </button>
+                        </div>
+                    </div>
+                {:else}
+                    <button
+                        class="btn btn-primary"
+                        on:click={startPasskeyRegistration}
+                        disabled={registeringPasskey}
+                    >
+                        ➕ Add Passkey / Biometric
+                    </button>
+                {/if}
             </div>
         </div>
     </div>
