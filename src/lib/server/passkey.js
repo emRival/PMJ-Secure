@@ -121,7 +121,8 @@ export class PasskeyAuth {
             ).all(userId);
 
             allowCredentials = credentials.map(cred => ({
-                id: Buffer.from(cred.credential_id, 'base64'),
+                // Convert from base64 to base64url string
+                id: Buffer.from(cred.credential_id, 'base64').toString('base64url'),
                 type: 'public-key',
                 transports: ['usb', 'ble', 'nfc', 'internal']
             }));

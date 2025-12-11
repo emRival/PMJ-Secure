@@ -1,9 +1,67 @@
 <script>
     import { fade } from "svelte/transition";
     import { enhance } from "$app/forms";
+    import { goto } from "$app/navigation";
+    import { startAuthentication } from "@simplewebauthn/browser";
+
     export let form;
 
     let showPassword = false;
+    let passkeyLoading = false;
+    let passkeyError = "";
+    let username = "";
+
+    async function loginWithPasskey() {
+        if (!username.trim()) {
+            passkeyError = "Please enter your username first";
+            return;
+        }
+
+        passkeyLoading = true;
+        passkeyError = "";
+
+        try {
+            // Get authentication options from server
+            const optionsRes = await fetch("/api/passkey/auth-options", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username }),
+            });
+
+            if (!optionsRes.ok) {
+                throw new Error("Failed to get authentication options");
+            }
+
+            const { userId, ...options } = await optionsRes.json();
+
+            // Start WebAuthn authentication
+            const authResp = await startAuthentication(options);
+
+            // Send response to server for verification
+            const verifyRes = await fetch("/api/passkey/auth-verify", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    response: authResp,
+                    userId,
+                }),
+            });
+
+            if (!verifyRes.ok) {
+                throw new Error("Authentication failed");
+            }
+
+            // Success! Redirect to home
+            goto("/");
+        } catch (error) {
+            console.error("Passkey login error:", error);
+            passkeyError =
+                error.message ||
+                "Failed to login with passkey. Make sure you have registered a passkey for this account.";
+        } finally {
+            passkeyLoading = false;
+        }
+    }
 </script>
 
 <div class="container">
@@ -62,6 +120,7 @@
                         id="username"
                         name="username"
                         placeholder="Enter your username"
+                        bind:value={username}
                         required
                     />
                 </div>
@@ -93,6 +152,29 @@
 
                 <button type="submit" class="btn-submit">Sign In</button>
             </form>
+
+            <!-- Divider -->
+            <div class="divider">
+                <span>OR</span>
+            </div>
+
+            <!-- Passkey Login -->
+            {#if passkeyError}
+                <div class="error" transition:fade>{passkeyError}</div>
+            {/if}
+
+            <button
+                type="button"
+                class="btn-passkey"
+                on:click={loginWithPasskey}
+                disabled={passkeyLoading || !username.trim()}
+            >
+                {#if passkeyLoading}
+                    ⏳ Authenticating...
+                {:else}
+                    🔑 Login with Passkey / Biometric
+                {/if}
+            </button>
 
             <div class="footer">
                 <p style="margin-bottom: 0.5rem;">
@@ -243,6 +325,54 @@
         margin-bottom: 1.5rem;
         font-size: 0.9rem;
         text-align: center;
+    }
+
+    /* Divider */
+    .divider {
+        display: flex;
+        align-items: center;
+        text-align: center;
+        margin: 1.5rem 0;
+        color: var(--text-muted);
+    }
+
+    .divider::before,
+    .divider::after {
+        content: "";
+        flex: 1;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .divider span {
+        padding: 0 1rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+
+    /* Passkey Button */
+    .btn-passkey {
+        width: 100%;
+        padding: 0.85rem;
+        background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        margin-bottom: 1.5rem;
+    }
+
+    .btn-passkey:hover:not(:disabled) {
+        background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+    }
+
+    .btn-passkey:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
     }
 
     .footer {
