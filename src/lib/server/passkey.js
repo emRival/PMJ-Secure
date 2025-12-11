@@ -26,10 +26,13 @@ export class PasskeyAuth {
             'SELECT credential_id FROM passkey_credentials WHERE user_id = ?'
         ).all(userId);
 
+        // Convert userId string to Uint8Array
+        const userIdBuffer = new TextEncoder().encode(userId);
+
         const options = await generateRegistrationOptions({
             rpName,
             rpID,
-            userID: userId,
+            userID: userIdBuffer,
             userName: username,
             attestationType: 'none',
             excludeCredentials: existingCredentials.map(cred => ({
