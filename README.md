@@ -11,13 +11,14 @@ PMJ Secure is a modern, secure, and open-source password generator and manager b
 
 </div>
 
-![PMJ Secure Preview](/static/og-image.png)
+![PMJ Secure Preview](/static/og_image.png)
 
 > **🤖 Powered by AI**: This application was built with the assistance of **Antigravity** - Google's AI-powered coding assistant. From concept to production in record time!
 
 ## 📑 Table of Contents
 
 - [Quick Install (Docker)](#-quick-install-docker) ⭐ **Start Here!**
+- [Application Preview](#-application-preview)
 - [Features](#-features)
 - [How to Update](#-how-to-update)
 - [User Guide](#-user-guide--key-workflows)
@@ -26,6 +27,34 @@ PMJ Secure is a modern, secure, and open-source password generator and manager b
 - [Docker Deployment (Full Guide)](#-docker-deployment-production)
 - [Architecture](#️-architecture--technology-stack)
 - [Security](#️-security-architecture)
+
+---
+
+## 📸 Application Preview
+
+<div align="center">
+
+| **Dashboard & Vault** | **Security & Passkeys** |
+|:---:|:---:|
+| ![Dashboard](/static/dashboard_page.png) | ![Passkeys](/static/account_settings.png) |
+| **Login with Biometrics** | **Identity Verification** |
+| ![Login](/static/login_passkey.png) | ![Sudo Mode](/static/sudo_mode.png) |
+
+</div>
+
+<details>
+<summary>Click to see more screenshots</summary>
+
+### Login Page
+![Login](/static/login_page.png)
+
+### Registration
+![Register](/static/register_page.png)
+
+### Two-Factor Authentication
+![2FA](/static/reset_password_page.png)
+
+</details>
 
 ---
 
@@ -103,6 +132,8 @@ To update the application to the latest version on your server (LXC/Docker), fol
 ## 📖 User Guide & Key Workflows
 
 ### 1. Smart Password Generation
+![Dashboard](/static/dashboard_page.png)
+
 On the main dashboard, you can generate strong random passwords instantly.
 -   **Customization**: Adjust length (up to 64 chars) and include/exclude Uppercase, Lowercase, Numbers, and Symbols.
 -   **One-Click Copy**: Click the generated password card to copy it immediately. No verification needed for newly generated passwords.
@@ -114,6 +145,8 @@ Save your important credentials to your personal encrypted vault.
 -   **Search**: Real-time filtering to find credentials quickly.
 
 ### 3. Identity Verification ("Sudo Mode")
+![Sudo Mode](/static/sudo_mode.png)
+
 To protect your most sensitive data, PMJ Secure implements a smart verification system.
 -   **Trigger**: When you try to **View**, **Edit**, or **Copy** a saved password from the vault, you will be asked to re-enter your login password.
 -   **10-Minute Session**: Once verified, you enter a "Unlock Mode" for 10 minutes.
@@ -137,6 +170,8 @@ PMJ Secure provides **true PDF encryption** using server-side generation with PD
 PMJ Secure supports **modern passwordless authentication** using Passkeys (WebAuthn standard).
 
 #### **What are Passkeys?**
+![Login with Passkey](/static/login_passkey.png)
+
 Passkeys are cryptographic credentials stored securely on your device. They use biometric authentication (fingerprint, Face ID, Windows Hello) or device PIN for login - **no passwords needed!**
 
 #### **Benefits:**
@@ -146,6 +181,8 @@ Passkeys are cryptographic credentials stored securely on your device. They use 
 -   ✅ **Multi-Device**: Register multiple passkeys (iPhone, MacBook, etc.)
 
 #### **Setup Passkey (First Time)**
+![Setup Passkey](/static/account_settings.png)
+
 1. **Login** with your username and password
 2. Go to **Account Settings**
 3. Scroll to "Passkey / Biometric Login" section
