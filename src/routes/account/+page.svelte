@@ -213,9 +213,9 @@
                         </div>
                     {/if}
 
-                    {#if form?.success}
+                    {#if form?.passwordSuccess}
                         <div class="alert success" transition:fade>
-                            {form.message}
+                            {form.passwordMessage}
                         </div>
                     {/if}
 
@@ -301,9 +301,9 @@
                     {/if}
                 {/if}
 
-                {#if form?.message && !form?.qrCode}
+                {#if (form?.twoFactorSuccess || form?.twoFactorDisabled) && !form?.qrCode}
                     <div class="alert success" style="margin-top: 1rem;">
-                        {form.message}
+                        {form.twoFactorMessage}
                     </div>
                 {/if}
             </div>

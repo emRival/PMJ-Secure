@@ -16,6 +16,8 @@ export const load = async ({ locals }) => {
     };
 };
 
+const PASSWORD_REGEX = /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+~`|}{[\]:;?><,./-=])[A-Za-z\d!@#$%^&*()_+~`|}{[\]:;?><,./-=]{8,}$/;
+
 export const actions = {
     updatePassword: async ({ request, locals }) => {
         if (!locals.user) return fail(401, { error: 'Unauthorized' });
@@ -33,8 +35,10 @@ export const actions = {
             return fail(400, { error: 'New passwords do not match' });
         }
 
-        if (newPassword.length < 6) {
-            return fail(400, { error: 'New password must be at least 6 characters' });
+        if (!PASSWORD_REGEX.test(newPassword)) {
+            return fail(400, {
+                error: 'Password must be at least 8 chars, with 1 uppercase, 1 number, and 1 symbol.'
+            });
         }
 
         // Verify current password
@@ -53,7 +57,7 @@ export const actions = {
         const updateStmt = db.prepare('UPDATE users SET password_hash = ? WHERE id = ?');
         updateStmt.run(hash, locals.user.id);
 
-        return { success: true, message: 'Password updated successfully' };
+        return { passwordSuccess: true, passwordMessage: 'Password updated successfully' };
     },
 
     setup2FA: async ({ locals }) => {
@@ -69,6 +73,7 @@ export const actions = {
         return {
             qrCode,
             secret,
+            twoFactorSetup: true, // Flag to indicate 2FA setup mode
             message: 'Scan the QR code with your authenticator app'
         };
     },
@@ -84,7 +89,7 @@ export const actions = {
             if (!success) {
                 return fail(400, { error2fa: 'Invalid code. Please try again.' });
             }
-            return { success: true, message: 'Two-Factor Authentication enabled successfully!' };
+            return { twoFactorSuccess: true, twoFactorMessage: 'Two-Factor Authentication enabled successfully!' };
         } catch (err) {
             return fail(400, { error2fa: err.message });
         }
@@ -93,6 +98,6 @@ export const actions = {
     disable2FA: async ({ locals }) => {
         if (!locals.user) return fail(401, { error: 'Unauthorized' });
         await Auth.disable2FA(locals.user.id);
-        return { success: true, message: 'Two-Factor Authentication disabled.' };
+        return { twoFactorDisabled: true, twoFactorMessage: 'Two-Factor Authentication disabled.' };
     }
 };

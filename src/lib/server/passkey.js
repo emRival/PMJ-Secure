@@ -24,9 +24,11 @@ export class PasskeyAuth {
         }
 
         // Get existing credentials to exclude
-        const existingCredentials = db.prepare(
-            'SELECT credential_id FROM passkey_credentials WHERE user_id = ?'
-        ).all(userId);
+        // DISABLED: To allow multiple passkeys (e.g. one on Mac, one on Android),
+        // we should NOT exclude existing credentials. This allows "Add another device" flow.
+        // const existingCredentials = db.prepare(
+        //    'SELECT credential_id FROM passkey_credentials WHERE user_id = ?'
+        // ).all(userId);
 
         // Convert userId string to Uint8Array
         const userIdBuffer = new TextEncoder().encode(userId);
@@ -37,11 +39,12 @@ export class PasskeyAuth {
             userID: userIdBuffer,
             userName: username,
             attestationType: 'none',
-            excludeCredentials: existingCredentials.map(cred => ({
-                id: Buffer.from(cred.credential_id, 'base64'),
-                type: 'public-key',
-                transports: ['usb', 'ble', 'nfc', 'internal']
-            })),
+            excludeCredentials: [], // Allow multiple credentials
+            // excludeCredentials: existingCredentials.map(cred => ({
+            //     id: Buffer.from(cred.credential_id, 'base64'),
+            //     type: 'public-key',
+            //     transports: ['usb', 'ble', 'nfc', 'internal']
+            // })),
             authenticatorSelection: {
                 residentKey: 'required', // Make credential discoverable
                 userVerification: 'preferred',
