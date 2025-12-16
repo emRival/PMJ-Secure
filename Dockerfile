@@ -37,8 +37,9 @@ COPY --from=builder /app/build ./build
 
 # Create a directory for the database
 # We still set basic permissions, but entrypoint will fix bind mounts
+# OPTIMIZATION: Only chown the data directory to avoid slow recursion on node_modules
 RUN mkdir -p /app/data && \
-    chown -R node:node /app
+    chown -R node:node /app/data
 
 # Copy entrypoint script and make it executable
 COPY entrypoint.sh /usr/local/bin/
