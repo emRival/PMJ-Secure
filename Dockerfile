@@ -25,20 +25,24 @@ RUN apt-get update && \
 COPY package*.json ./
 
 # Install production deps, then remove build tools to reduce attack surface
+# Also install 'gosu' for safe user switching in entrypoint
 RUN npm ci --omit=dev && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends gosu && \
     apt-get purge -y python3 make g++ && \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /app/build ./build
 
-# Create a directory for the database and set permissions for non-root user
-# We only chown the data directory to avoid slow `chown -R` on node_modules
+# Create a directory for the database
+# We still set basic permissions, but entrypoint will fix bind mounts
 RUN mkdir -p /app/data && \
-    chown -R node:node /app/data
+    chown -R node:node /app
 
-# Switch to non-root user for security
-USER node
+# Copy entrypoint script and make it executable
+COPY entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
 ENV DB_PATH=/app/data/passwords.db
 ENV PORT=3000
@@ -46,4 +50,6 @@ ENV PORT=3000
 
 EXPOSE 3000
 
+# Use the entrypoint script to handle permissions dropping
+ENTRYPOINT ["entrypoint.sh"]
 CMD ["node", "build"]
