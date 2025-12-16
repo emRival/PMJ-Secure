@@ -17,18 +17,28 @@ FROM node:20-slim
 
 WORKDIR /app
 
-# Install runtime dependencies for better-sqlite3 (if needed, usually just node is enough if prebuilt works, 
-# but better-sqlite3 might need recompiling if glibc versions differ significantly, though node:20-slim to node:20-slim is safe)
-# We might need python3/make/g++ again if npm ci --omit=dev triggers a build
-RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
+# Install build deps for native modules (needed for better-sqlite3), then cleanup immediately
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends python3 make g++ && \
+    rm -rf /var/lib/apt/lists/*
 
 COPY package*.json ./
-RUN npm ci --omit=dev
+
+# Install production deps, then remove build tools to reduce attack surface
+RUN npm ci --omit=dev && \
+    apt-get purge -y python3 make g++ && \
+    apt-get autoremove -y && \
+    rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /app/build ./build
 
-# Create a directory for the database
-RUN mkdir -p /app/data
+# Create a directory for the database and set permissions for non-root user
+RUN mkdir -p /app/data && \
+    chown -R node:node /app
+
+# Switch to non-root user for security
+USER node
+
 ENV DB_PATH=/app/data/passwords.db
 ENV PORT=3000
 # ENV ORIGIN=http://localhost:3000

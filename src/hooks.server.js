@@ -15,8 +15,8 @@ export async function handle({ event, resolve }) {
         }
     }
 
-    // Rate Limiting for Registration
-    if (event.url.pathname === '/register' && event.request.method === 'POST') {
+    // Rate Limiting for Registration and Login
+    if ((event.url.pathname === '/register' || event.url.pathname === '/login') && event.request.method === 'POST') {
         try {
             const ip = event.getClientAddress();
             const now = Date.now();
@@ -31,7 +31,14 @@ export async function handle({ event, resolve }) {
             const recentRequests = requests.filter(time => now - time < windowMs);
 
             if (recentRequests.length >= max) {
-                return new Response('Too many account creation attempts. Please try again later.', { status: 429 });
+                console.warn(`[SECURITY] Rate limit exceeded for IP ${ip} on ${event.url.pathname}`);
+                return new Response(JSON.stringify({ error: 'Too many attempts. Please try again later.' }), {
+                    status: 429,
+                    headers: {
+                        'Retry-After': '900',
+                        'Content-Type': 'application/json'
+                    }
+                });
             }
 
             recentRequests.push(now);
@@ -41,5 +48,23 @@ export async function handle({ event, resolve }) {
         }
     }
 
-    return await resolve(event);
+    const response = await resolve(event);
+
+    // OWASP Security Headers
+    response.headers.set('X-Frame-Options', 'DENY');
+    response.headers.set('X-Content-Type-Options', 'nosniff');
+    response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+    response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+
+    // Content Security Policy (Basic)
+    // allowing 'unsafe-inline' for Svelte styles/scripts often needed, but can be tightened later
+    // Added Google Fonts support
+    response.headers.set('Content-Security-Policy', "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self' 'unsafe-inline'; frame-ancestors 'none';");
+
+    // HSTS (Strict-Transport-Security) - Enable in Production
+    if (process.env.NODE_ENV === 'production') {
+        response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+    }
+
+    return response;
 }

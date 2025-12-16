@@ -4,6 +4,23 @@
     export let form;
 
     let showPassword = false;
+    let passwordCriteria = {
+        length: false,
+        upper: false,
+        number: false,
+        special: false,
+    };
+
+    $: isPasswordValid = Object.values(passwordCriteria).every((v) => v);
+
+    function validatePassword(password) {
+        passwordCriteria = {
+            length: password.length >= 8,
+            upper: /[A-Z]/.test(password),
+            number: /\d/.test(password),
+            special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password),
+        };
+    }
 </script>
 
 <div class="container">
@@ -40,6 +57,7 @@
                         name="password"
                         placeholder="Create a strong password"
                         required
+                        on:input={(e) => validatePassword(e.target.value)}
                     />
                     <button
                         type="button"
@@ -50,13 +68,45 @@
                         {showPassword ? "👁️" : "🙈"}
                     </button>
                 </div>
+
+                <!-- Password Requirements Checklist -->
+                <div class="password-requirements">
+                    <div
+                        class="req-item {passwordCriteria.length
+                            ? 'valid'
+                            : ''}"
+                    >
+                        {passwordCriteria.length ? "✅" : "⚪"} At least 8 characters
+                    </div>
+                    <div
+                        class="req-item {passwordCriteria.upper ? 'valid' : ''}"
+                    >
+                        {passwordCriteria.upper ? "✅" : "⚪"} One uppercase letter
+                    </div>
+                    <div
+                        class="req-item {passwordCriteria.number
+                            ? 'valid'
+                            : ''}"
+                    >
+                        {passwordCriteria.number ? "✅" : "⚪"} One number
+                    </div>
+                    <div
+                        class="req-item {passwordCriteria.special
+                            ? 'valid'
+                            : ''}"
+                    >
+                        {passwordCriteria.special ? "✅" : "⚪"} One special character
+                    </div>
+                </div>
             </div>
 
             {#if form?.error}
                 <div class="error" transition:fade>{form.error}</div>
             {/if}
 
-            <button type="submit" class="btn-submit">Create Account</button>
+            <button type="submit" class="btn-submit" disabled={!isPasswordValid}
+                >Create Account</button
+            >
         </form>
 
         <div class="footer">
@@ -234,5 +284,34 @@
         h1 {
             font-size: 1.25rem;
         }
+    }
+
+    /* Password Requirements */
+    .password-requirements {
+        margin-top: 0.8rem;
+        background: rgba(0, 0, 0, 0.03);
+        padding: 0.8rem;
+        border-radius: 8px;
+        font-size: 0.85rem;
+    }
+
+    .req-item {
+        margin-bottom: 0.3rem;
+        color: #6b7280;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: color 0.2s;
+    }
+
+    .req-item.valid {
+        color: #059669; /* Green */
+        font-weight: 500;
+    }
+
+    .btn-submit:disabled {
+        background: #9ca3af;
+        cursor: not-allowed;
+        opacity: 0.7;
     }
 </style>

@@ -454,11 +454,12 @@
     let excelProcessing = false;
     let excelError = "";
     let excelSuccessMsg = "";
-    let processedWorkbook = null;
+    let processedData = null; // Store data as array of arrays (rows)
     let excelPreviewData = []; // To store data for the table preview
     let excelPasswordColIndex = -1; // To highlight the password column
 
-    import * as XLSX from "xlsx";
+    import readXlsxFile from "read-excel-file";
+    import writeXlsxFile from "write-excel-file";
 
     function generateSinglePassword(len, upper, lower, nums, syms) {
         const uppercaseChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -483,101 +484,120 @@
         return password;
     }
 
-    function handleExcelUpload(event) {
+    async function handleExcelUpload(event) {
         const file = event.target.files[0];
         if (!file) return;
 
         excelProcessing = true;
         excelError = "";
         excelSuccessMsg = "";
-        processedWorkbook = null;
+        processedData = null;
         excelPreviewData = [];
 
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: "array" });
-                const sheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[sheetName];
+        try {
+            // read-excel-file returns array of arrays (rows)
+            const rows = await readXlsxFile(file);
 
-                // Convert to array of arrays
-                const jsonData = XLSX.utils.sheet_to_json(worksheet, {
-                    header: 1,
-                });
-
-                if (!jsonData || jsonData.length === 0) {
-                    throw new Error("File appears to be empty.");
-                }
-
-                // Find 'password' header
-                const headers = jsonData[0];
-                const passColIndex = headers.findIndex(
-                    (h) => h && h.toString().toLowerCase().includes("password"),
-                );
-
-                if (passColIndex === -1) {
-                    throw new Error(
-                        "Could not find a column with header 'password'. Please add one.",
-                    );
-                }
-                excelPasswordColIndex = passColIndex;
-
-                let count = 0;
-                // Start from row 1 (users data)
-                for (let i = 1; i < jsonData.length; i++) {
-                    const row = jsonData[i];
-                    // Check if row has any content to avoid filling infinite empty rows
-                    if (
-                        row &&
-                        row.some(
-                            (cell) =>
-                                cell !== null &&
-                                cell !== "" &&
-                                cell !== undefined,
-                        )
-                    ) {
-                        // Ensure row handles the column index
-                        while (row.length <= passColIndex) {
-                            row.push("");
-                        }
-                        // Generate password using current UI settings
-                        row[passColIndex] = generateSinglePassword(
-                            length,
-                            useUppercase,
-                            useLowercase,
-                            useNumbers,
-                            useSymbols,
-                        );
-                        count++;
-                    }
-                }
-
-                if (count === 0) {
-                    throw new Error("No data rows found to populate.");
-                }
-
-                // Convert back to sheet
-                const newSheet = XLSX.utils.aoa_to_sheet(jsonData);
-                workbook.Sheets[sheetName] = newSheet;
-                processedWorkbook = workbook;
-                excelPreviewData = jsonData; // Store all data for preview
-                excelSuccessMsg = `Success! Generated passwords for ${count} rows.`;
-            } catch (err) {
-                console.error(err);
-                excelError = err.message || "Failed to process Excel file.";
-            } finally {
-                excelProcessing = false;
-                // Reset file input so same file can be selected again if needed
-                event.target.value = "";
+            if (!rows || rows.length === 0) {
+                throw new Error("File appears to be empty.");
             }
-        };
-        reader.readAsArrayBuffer(file);
+
+            // Find 'password' header
+            const headers = rows[0];
+            const passColIndex = headers.findIndex(
+                (h) => h && h.toString().toLowerCase().includes("password"),
+            );
+
+            if (passColIndex === -1) {
+                throw new Error(
+                    "Could not find a column with header 'password'. Please add one.",
+                );
+            }
+            excelPasswordColIndex = passColIndex;
+
+            let count = 0;
+            // Start from row 1 (users data)
+            for (let i = 1; i < rows.length; i++) {
+                const row = rows[i];
+                // Check if row has any content to avoid filling infinite empty rows
+                if (
+                    row &&
+                    row.some(
+                        (cell) =>
+                            cell !== null && cell !== "" && cell !== undefined,
+                    )
+                ) {
+                    // Ensure row handles the column index
+                    while (row.length <= passColIndex) {
+                        row.push(null); // write-excel-file prefers null for empty
+                    }
+
+                    // Generate password using current UI settings
+                    const newPass = generateSinglePassword(
+                        length,
+                        useUppercase,
+                        useLowercase,
+                        useNumbers,
+                        useSymbols,
+                    );
+
+                    // Simple string update for the cell
+                    row[passColIndex] = newPass;
+
+                    count++;
+                }
+            }
+
+            if (count === 0) {
+                throw new Error("No data rows found to populate.");
+            }
+
+            processedData = rows;
+            excelPreviewData = rows; // Store all data for preview
+            excelSuccessMsg = `Success! Generated passwords for ${count} rows.`;
+        } catch (err) {
+            console.error(err);
+            excelError = err.message || "Failed to process Excel file.";
+        } finally {
+            excelProcessing = false;
+            // Reset file input so same file can be selected again if needed
+            event.target.value = "";
+        }
     }
 
-    function downloadExcel() {
-        if (!processedWorkbook) return;
-        XLSX.writeFile(processedWorkbook, "passwords_filled.xlsx");
+    async function downloadExcel() {
+        if (!processedData) return;
+
+        // Transform for write-excel-file if needed.
+        // It accepts simple array of objects for schema-based, or array of arrays.
+        // Array of arrays format:
+        // [
+        //   [{ value: 'Header1' }, { value: 'Header2' }],
+        //   [{ value: 'Val1' }, { value: 'Val2' }]
+        // ]
+        // OR simpler:
+        // [ ['Header1', 'Header2'], ['Val1', 'Val2'] ]
+
+        // We have simple array of arrays from read-excel-file.
+        // However, write-excel-file expects objects if used directly with specific types,
+        // OR we can map it to objects { value, type }.
+        // Let's rely on simple values which it validates.
+
+        const dataForExport = processedData.map((row) =>
+            row.map((cell) => ({
+                value: cell === null || cell === undefined ? "" : cell,
+                type: typeof cell === "number" ? Number : String,
+            })),
+        );
+
+        try {
+            await writeXlsxFile(dataForExport, {
+                fileName: "passwords_filled.xlsx",
+            });
+        } catch (e) {
+            console.error(e);
+            excelError = "Failed to download Excel file.";
+        }
     }
 </script>
 
@@ -878,36 +898,38 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {#each excelPreviewData.slice(1) as row}
-                                            <!-- Only show rows that have data -->
-                                            {#if row.some((cell) => cell !== null && cell !== "")}
-                                                <tr>
-                                                    {#each row as cell, i}
-                                                        <td
-                                                            class:highlight={i ===
-                                                                excelPasswordColIndex}
-                                                        >
-                                                            {#if i === excelPasswordColIndex}
-                                                                <span
-                                                                    class="generated-preview"
-                                                                    >{cell}</span
-                                                                >
-                                                            {:else}
-                                                                {cell || ""}
-                                                            {/if}
-                                                        </td>
-                                                    {/each}
-                                                </tr>
-                                            {/if}
+                                        {#each excelPreviewData.slice(1, 6) as row}
+                                            <tr>
+                                                {#each row as cell, i}
+                                                    <td
+                                                        class:highlight-cell={i ===
+                                                            excelPasswordColIndex}
+                                                    >
+                                                        {cell}
+                                                    </td>
+                                                {/each}
+                                            </tr>
                                         {/each}
                                     </tbody>
                                 </table>
+                                {#if excelPreviewData.length > 6}
+                                    <p class="more-rows">
+                                        ...and {excelPreviewData.length - 6} more
+                                        rows
+                                    </p>
+                                {/if}
+                            </div>
+
+                            <div class="bulk-actions">
+                                <button
+                                    class="btn btn-primary"
+                                    on:click={downloadExcel}
+                                    disabled={!processedData}
+                                >
+                                    Download Updated Excel
+                                </button>
                             </div>
                         {/if}
-
-                        <button class="btn btn-primary" on:click={downloadExcel}
-                            >Download Excel File</button
-                        >
                     </div>
                 {/if}
             </div>
