@@ -33,8 +33,9 @@ RUN npm ci --omit=dev && \
 COPY --from=builder /app/build ./build
 
 # Create a directory for the database and set permissions for non-root user
+# We only chown the data directory to avoid slow `chown -R` on node_modules
 RUN mkdir -p /app/data && \
-    chown -R node:node /app
+    chown -R node:node /app/data
 
 # Switch to non-root user for security
 USER node
